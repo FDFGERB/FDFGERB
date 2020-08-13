@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-cd $HOME/XGGGJ
+cd $HOME/FDFGERB
 install() {
 rm -rf $HOME/.telegram-cli
 sudo apt-get update -y
@@ -20,8 +20,8 @@ sudo apt-get install lua-lgi -y
 sudo apt-get install libnotify-dev -y
 sudo timedatectl set-timezone Asia/Baghdad
 sudo chmod +x tg
-lua nightrang.lua
-sudo chmod +x nightrang
+lua FDFGERB.lua
+sudo chmod +x FDFGERB
 sudo chmod +x ./NG
 ./NG
 }
@@ -33,8 +33,8 @@ echo "Tg Is Not Found"
 exit 1
 fi
 sudo chmod +x tg
-lua nightrang.lua
-sudo chmod +x nightrang
+lua FDFGERB.lua
+sudo chmod +x FDFGERB
 sudo chmod +x ./NG
 ./NG
 fi
