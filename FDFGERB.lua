@@ -11052,7 +11052,7 @@ tdcli_function ({ID = "GetUser",user_id_ = result.sender_user_id_},function(arg,
 if data.username_ ~= false then
 send(msg.chat_id_,0,"⌔︙العضو : {["..data.first_name_.."](T.ME/"..data.username_..")}\n⌔︙["..FDFGERBAbot.."] \n") 
 else
-send(msg.chat_id_,0,"⌔︙العضو : {["..data.first_name_.."](T.ME/xxxli)}\n⌔︙["..FDFGERBi]k,=Abot.."] \n") 
+send(msg.chat_id_,0,"⌔︙العضو : {["..data.first_name_.."](T.ME/xxxli)}\n⌔︙["..FDFGERBAbot.."] \n") 
 end
 end,nil)   
 DeleteMessage(msg.chat_id_,{[0] = data.message_id_}) 
