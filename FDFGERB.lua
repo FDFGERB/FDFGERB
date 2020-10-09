@@ -2437,7 +2437,7 @@ Text = [[
 
 [ مطور السورس ](t.me/ttat10)
 
-[ قناة السورس ](t.me/hlIl3)
+[ قناة السورس ](t.me/hlIl4)
 
 ]]
 send(msg.chat_id_, msg.id_,Text)
