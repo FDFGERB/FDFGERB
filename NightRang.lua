@@ -5,21 +5,23 @@ json = dofile("./lib/JSON.lua")
 URL = dofile("./lib/url.lua")
 serpent = dofile("./lib/serpent.lua")
 redis = dofile("./lib/redis.lua").connect("127.0.0.1", 6379)
-Server_Devid = io.popen("echo $SSH_CLIENT | awk '{ print $1}'"):read('*a')
+Server_Devid = io.popen("echo $SSH_CLIENT  awk '{ print $1}'"):read('*a')
 ------------------------------------------------------------------------------------------------------------
 local function Load_File()
 local f = io.open("./Info_Sudo.lua", "r")  
 if not f then   
 if not redis:get(Server_Devid.."Token_Devbot") then
-io.write('\n\27[1;35m⬇Send Token For Bot : ارسل توكن البوت ...\n\27[0;39;49m')
+io.write('\n\27[1;35mSend Token For Bot : ارسل توكن البوت ...\n\27[0;39;49m')
 local token = io.read()
 if token ~= '' then
 local url , res = https.request('https://api.telegram.org/bot'..token..'/getMe')
+local User_Info_bot = JSON.decode(url) 
 if res ~= 200 then
 io.write('\n\27[1;31mToken Is Communication Error\n التوكن غلط جرب مره اخره \n\27[0;39;49m')
 else
 io.write('\n\27[1;31m• Done Save Token : تم حفظ التوكن \n\27[0;39;49m')
 redis:set(Server_Devid.."Token_Devbot",token)
+redis:set(Server_Devid.."Token_Devbotuser",User_Info_bot.result.username)
 end 
 else
 io.write('\n\27[1;31mToken was not saved \n لم يتم حفظ التوكن \n\27[0;39;49m')
@@ -28,7 +30,7 @@ os.execute('lua NightRang.lua')
 end
 ------------------------------------------------------------------------------------------------------------
 if not redis:get(Server_Devid.."User_Devbots1") then
-io.write('\n\27[1;35m⬇Send UserName For Sudo : ارسل معرف Carbon ...\n\27[0;39;49m')
+io.write('\n\27[1;35mSend UserName For Sudo : ارسل معرف Carbon ...\n\27[0;39;49m')
 local User_Sudo = io.read():gsub('@','')
 if User_Sudo ~= '' then
 local GetInfoUser = https.request("https://devstorm.ml/api/source/?id="..User_Sudo)
@@ -74,7 +76,8 @@ Dev_Info_Sudo:close()
 local Run_File_NightRang = io.open("NightRang", 'w')
 Run_File_NightRang:write([[
 #!/usr/bin/env bash
-cd $HOME/NightRang
+cd $HOME/]]..redis:get(Server_Devid.."Token_Devbotuser")..[[
+
 token="]]..redis:get(Server_Devid.."Token_Devbot")..[["
 while(true) do
 rm -fr ../.telegram-cli
@@ -86,19 +89,27 @@ Run_File_NightRang:close()
 local Run_SM = io.open("NG", 'w')
 Run_SM:write([[
 #!/usr/bin/env bash
-cd $HOME/NightRang
+cd $HOME/]]..redis:get(Server_Devid.."Token_Devbotuser")..[[
+
 while(true) do
 rm -fr ../.telegram-cli
-screen -S NightRang -X kill
-screen -S NightRang ./NightRang
+screen -S ]]..redis:get(Server_Devid.."Token_Devbotuser")..[[ -X kill
+
+screen -S ]]..redis:get(Server_Devid.."Token_Devbotuser")..[[ ./NightRang
+
 done
 ]])
 Run_SM:close()
-io.popen("mkdir Files")
-os.execute('chmod +x tg')
-os.execute('chmod +x NG')
-os.execute('chmod +x NightRang')
-os.execute('./NG')
+local CmdRun =[[
+chmod +x tg
+chmod +x NightRang
+chmod +x ./NG
+cp -a ../NightRang ../]]..redis:get(Server_Devid.."Token_Devbotuser")..[[ &&
+rm -fr ~/NightRang
+../]]..redis:get(Server_Devid.."Token_Devbotuser")..[[/NG
+]]
+os.execute(CmdRun)
+
 Status = true
 else   
 f:close()  
@@ -148,6 +159,26 @@ Dev_Bots_User = true
 end  
 end  
 return Dev_Bots_User  
+end 
+function DeveloperBot12(user)  
+local Dev_Bots_User1 = false  
+local Status = redis:sismember(bot_id.."NightRang:Developer:Bot1", user) 
+for k,v in pairs(Ids_Dev) do  
+if user == v then  
+Dev_Bots_User1 = true  
+end  
+end  
+return Dev_Bots_User1  
+end 
+function DeveloperBot112(user)  
+local Dev_Bots_User1 = false  
+local Status = redis:sismember(bot_id.."NightRang:Developer:Bot", user) 
+for k,v in pairs(Ids_Dev) do  
+if user == v then  
+Dev_Bots_User1 = true  
+end  
+end  
+return Dev_Bots_User1  
 end 
 function DeveloperBot1(msg) 
 local Status = redis:sismember(bot_id.."NightRang:Developer:Bot1", msg.sender_user_id_) 
@@ -235,7 +266,7 @@ function Get_Rank(user_id,chat_id)
 if Dev_Bots_User(user_id) == true then
 Status = "Carbon"  
 elseif tonumber(user_id) == tonumber(bot_id) then  
-Status = "انا البوت :)"
+Status = "انا البوت :) "
 elseif redis:sismember(bot_id.."NightRang:Developer:Bot1", user_id) then
 Status = redis:get(bot_id.."NightRang:Developer:Bot:Reply"..chat_id) or "Commander 🎖"  
 elseif redis:sismember(bot_id.."NightRang:Developer:Bot", user_id) then
@@ -309,10 +340,22 @@ return Status
 end
 ------------------------------------------------------------------------------------------------------------
 function send(chat_id, reply_to_message_id, text)
+local text1 = redis:get(bot_id..'NightRang:new:sourse1') or '━━━━━━━━'
+local text2 = redis:get(bot_id..'NightRang:new:sourse2') or '•'
+text = string.gsub(text,"━━━━━━━━",text1)
+text = string.gsub(text,"•",text2)
 local TextParseMode = {ID = "TextParseModeMarkdown"}
 pcall(tdcli_function ({ID = "SendMessage",chat_id_ = chat_id,reply_to_message_id_ = reply_to_message_id,disable_notification_ = 1,from_background_ = 1,reply_markup_ = nil,input_message_content_ = {ID = "InputMessageText",text_ = text,disable_web_page_preview_ = 1,clear_draft_ = 0,entities_ = {},parse_mode_ = TextParseMode,},}, dl_cb, nil))
 end
 function send1(chat_id, reply_to_message_id, text)
+local text1 = redis:get(bot_id..'NightRang:new:sourse1') or '━━━━━━━━'
+local text2 = redis:get(bot_id..'NightRang:new:sourse2') or '•'
+text = string.gsub(text,"━━━━━━━━",text1)
+text = string.gsub(text,"•",text2)
+local TextParseMode = {ID = "TextParseModeMarkdown"}
+pcall(tdcli_function ({ID = "SendMessage",chat_id_ = chat_id,reply_to_message_id_ = reply_to_message_id,disable_notification_ = 1,from_background_ = 1,reply_markup_ = nil,input_message_content_ = {ID = "InputMessageText",text_ = text,disable_web_page_preview_ = 0,clear_draft_ = 0,entities_ = {},parse_mode_ = TextParseMode,},}, dl_cb, nil))
+end
+function send2(chat_id, reply_to_message_id, text)
 local TextParseMode = {ID = "TextParseModeMarkdown"}
 pcall(tdcli_function ({ID = "SendMessage",chat_id_ = chat_id,reply_to_message_id_ = reply_to_message_id,disable_notification_ = 1,from_background_ = 1,reply_markup_ = nil,input_message_content_ = {ID = "InputMessageText",text_ = text,disable_web_page_preview_ = 0,clear_draft_ = 0,entities_ = {},parse_mode_ = TextParseMode,},}, dl_cb, nil))
 end
@@ -612,9 +655,6 @@ send(chat,idmsg,"•  لا يمكن الوصول لمعلومات الشخص")
 end
 end,nil)   
 end
-elseif data.ID == ("UpdateOption") and data.value_.value_ == ("Ready") then
-download('https://raw.githubusercontent.com/NightRang/NightRang/master/NightRang.lua','NightRang.lua')
-dofile("NightRang.lua")  
 ------------------------------------------------------------------------------------------------------------
 function Total_message(Message)  
 local MsgText = ''  
@@ -835,8 +875,88 @@ end
 ------------------------------------------------------------------------------------------------------------
 function Dev_Bots_File(msg,data)
 if msg then
-msg = data.message_
 text = msg.content_.text_
+function Bot(msg)  
+local idbot = false  
+if msg.sender_user_id_ == bot_id then  
+idbot = true  
+end  
+return idbot  
+end 
+function Dev_Bots(msg)  
+local Dev_Bots = false  
+for k,v in pairs(Ids_Dev) do  
+if msg.sender_user_id_ == v then  
+Dev_Bots = true  
+end  
+end  
+return Dev_Bots  
+end 
+function Dev_Bots_User(user)  
+local Dev_Bots_User = false  
+for k,v in pairs(Ids_Dev) do  
+if user == v then  
+Dev_Bots_User = true  
+end  
+end  
+return Dev_Bots_User  
+end 
+function DeveloperBot1(msg) 
+local Status = redis:sismember(bot_id.."NightRang:Developer:Bot1", msg.sender_user_id_) 
+if Status or Dev_Bots(msg) or Bot(msg) then  
+return true  
+else  
+return false  
+end  
+end
+function DeveloperBot(msg) 
+local Status = redis:sismember(bot_id.."NightRang:Developer:Bot", msg.sender_user_id_) 
+if Status or Dev_Bots(msg) or DeveloperBot1(msg) or Bot(msg) then    
+return true  
+else  
+return false  
+end  
+end
+function PresidentGroup(msg)
+local hash = redis:sismember(bot_id.."NightRang:President:Group"..msg.chat_id_, msg.sender_user_id_) 
+if hash or Dev_Bots(msg) or DeveloperBot1(msg) or DeveloperBot(msg) or Bot(msg) then    
+return true 
+else 
+return false 
+end 
+end
+function Constructor(msg)
+local hash = redis:sismember(bot_id..'NightRang:Constructor:Group'..msg.chat_id_, msg.sender_user_id_) 
+if hash or Dev_Bots(msg) or DeveloperBot1(msg) or DeveloperBot(msg) or PresidentGroup(msg) or Bot(msg) then       
+return true    
+else    
+return false    
+end 
+end
+function Owner(msg)
+local hash = redis:sismember(bot_id..'NightRang:Manager:Group'..msg.chat_id_,msg.sender_user_id_)    
+if hash or Dev_Bots(msg) or DeveloperBot1(msg) or DeveloperBot(msg) or PresidentGroup(msg) or Constructor(msg) or Bot(msg) then       
+return true    
+else    
+return false    
+end 
+end
+function Admin(msg)
+local hash = redis:sismember(bot_id..'NightRang:Admin:Group'..msg.chat_id_,msg.sender_user_id_)    
+if hash or Dev_Bots(msg) or DeveloperBot1(msg) or DeveloperBot(msg) or PresidentGroup(msg) or Constructor(msg) or Owner(msg) or Bot(msg) then       
+return true    
+else    
+return false    
+end 
+end
+function Vips(msg)
+local hash = redis:sismember(bot_id..'NightRang:Vip:Group'..msg.chat_id_,msg.sender_user_id_) 
+if hash or Dev_Bots(msg) or DeveloperBot1(msg) or DeveloperBot(msg) or PresidentGroup(msg) or Constructor(msg) or Owner(msg) or Admin(msg) or Bot(msg) then       
+return true 
+else 
+return false 
+end 
+end
 ------------------------------------------------------------------------------------------------------------
 if msg.chat_id_ then
 local id = tostring(msg.chat_id_)
@@ -1251,10 +1371,15 @@ local GetWelcomeGroup = redis:get(bot_id.."NightRang:Get:Welcome:Group"..msg.cha
 if GetWelcomeGroup then 
 t = GetWelcomeGroup
 else  
-t = "\n• نورت حبي \n•  name \n• user" 
+t = '\n• نورت \n name \n user' 
 end 
-t = t:gsub("name",result.first_name_) 
-t = t:gsub("user",("@"..result.username_ or "لا يوجد")) 
+t = t:gsub('name',result.first_name_) 
+if result.username_ then 
+welcomeuser = '[@'..result.username_..']'
+else
+welcomeuser = ' لا يوجد معرف'
+end
+t = t:gsub('user',welcomeuser) 
 send(msg.chat_id_, msg.id_,t)
 end,nil) 
 end 
@@ -1444,6 +1569,46 @@ end
 redis:del(bot_id.."NightRang:Broadcasting:Groups" .. msg.chat_id_ .. ":" .. msg.sender_user_id_) 
 return false
 end
+if redis:get(bot_id.."BotNightRang:Broadcasting:Groups:Pin" .. msg.chat_id_ .. ":" .. msg.sender_user_id_) then 
+if text == "الغاء" or text == "الغاء ✖" then   
+send(msg.chat_id_,msg.id_, "\n〽تم الغاء الاذاعه للمجموعات") 
+redis:del(bot_id.."BotNightRang:Broadcasting:Groups:Pin" .. msg.chat_id_ .. ":" .. msg.sender_user_id_) 
+return false
+end 
+local list = redis:smembers(bot_id.."NightRang:ChekBotAdd") 
+send(msg.chat_id_, msg.id_,"☑تمت الاذاعه الى *- "..#list.." * مجموعه في البوت ")     
+if msg.content_.text_ then
+for k,v in pairs(list) do 
+send(v, 0,"["..msg.content_.text_.."]")  
+redis:set(bot_id..'BotNightRang:Msg:Pin:Chat'..v,msg.content_.text_) 
+end
+elseif msg.content_.photo_ then
+if msg.content_.photo_.sizes_[0] then
+photo = msg.content_.photo_.sizes_[0].photo_.persistent_id_
+elseif msg.content_.photo_.sizes_[1] then
+photo = msg.content_.photo_.sizes_[1].photo_.persistent_id_
+end
+for k,v in pairs(list) do 
+sendPhoto(v, 0, photo,(msg.content_.caption_ or ""))
+redis:set(bot_id..'BotNightRang:Msg:Pin:Chat'..v,photo) 
+end 
+elseif msg.content_.animation_ then
+for k,v in pairs(list) do 
+sendDocument(v, 0, msg.content_.animation_.animation_.persistent_id_,(msg.content_.caption_ or "")) 
+redis:set(bot_id..'BotNightRang:Msg:Pin:Chat'..v,msg.content_.animation_.animation_.persistent_id_)
+end 
+elseif msg.content_.sticker_ then
+for k,v in pairs(list) do 
+sendSticker(v, 0, msg.content_.sticker_.sticker_.persistent_id_)   
+redis:set(bot_id..'BotNightRang:Msg:Pin:Chat'..v,msg.content_.sticker_.sticker_.persistent_id_) 
+end 
+end
+redis:del(bot_id.."BotNightRang:Broadcasting:Groups:Pin" .. msg.chat_id_ .. ":" .. msg.sender_user_id_) 
+return false
+end
+
+
+
 ------------------------------------------------------------------------------------------------------------
 if redis:get(bot_id.."NightRang:Broadcasting:Groups:Fwd" .. msg.chat_id_ .. ":" .. msg.sender_user_id_) then 
 if text == "الغاء" or text == "الغاء ✖" then   
@@ -1864,6 +2029,11 @@ end
 end
 ------------------------------------------------------------------------------------------------------------
 if text and text:match("^(.*)$") then
+if text == "الغاء" then 
+send(msg.chat_id_, msg.id_, "• تم الغاء حفظ الرد") 
+redis:del(bot_id.."NightRang:Set:Manager:rd"..msg.sender_user_id_..":"..msg.chat_id_)
+return false  
+end 
 if redis:get(bot_id.."NightRang:Set:Manager:rd"..msg.sender_user_id_..":"..msg.chat_id_) == "true" then
 send(msg.chat_id_, msg.id_, '\n• ارسل لي الرد لاضافته\n• تستطيع اضافة ← { ملف ، فديو ، نص ، ملصق ، بصمه ، متحركه }\n• تستطيع ايضا اضافة :\n• `#username` » معرف المستخدم \n• `#msgs` » عدد الرسائل\n• `#name` » اسم المستخدم\n• `#id` » ايدي المستخدم\n• `#stast` » موقع المستخدم \n• `#edit` » عدد السحكات ')
 redis:set(bot_id.."NightRang:Set:Manager:rd"..msg.sender_user_id_..":"..msg.chat_id_,"true1")
@@ -1881,6 +2051,11 @@ return false end
 end
 ------------------------------------------------------------------------------------------------------------
 if text and text:match("^(.*)$") then
+if text == "الغاء" then 
+send(msg.chat_id_, msg.id_, "• تم الغاء حذف الرد") 
+redis:del(bot_id.."NightRang:Set:Manager:rd"..msg.sender_user_id_..":"..msg.chat_id_)
+return false  
+end 
 if redis:get(bot_id.."NightRang:Set:Manager:rd"..msg.sender_user_id_..":"..msg.chat_id_.."") == "true2" then
 send(msg.chat_id_, msg.id_,"• تم حذف الرد من الردود ")
 redis:del(bot_id.."NightRang:Add:Rd:Manager:Gif"..text..msg.chat_id_)   
@@ -2189,17 +2364,18 @@ send(msg.chat_id_, msg.id_,' تم تغيير رسالة الاشتراك بنج�
 end
 ---------------------------------------------------
 if TypeForChat == ("ForUser") then
-if text == '/start' then  
+if text == '/start' or text == 'العوده' then  
 if Dev_Bots(msg) then
 local Text_keyboard = '• اهلا بك عزيزي Carbon \n في اوامرك الخاصه \n يمكنك تحكم في بوت عن طريق كيبورد ادناه '
 local List_keyboard = {
 {'تغيير اسم البوت'},
 {'الاحصائيات'},
 {'تفعيل تواصل','تعطيل تواصل'},
-{'اذاعه خاص','اذاعه للمجموعات'},
-{'اذاعه خاص بالتوجيه','اذاعه بالتوجيه'},
+{'الاذاعه'},
 {'مسح قائمة C','مسح قائمة CM'},
 {'مسح المكتومين عام','مسح قائمة العام'},
+{'اضف سوال كت تويت','حذف سوال كت تويت'},
+{'حذف سوال مقالات','اضف سوال مقالات'},
 {'حذف الايدي عام','تعيين الايدي عام'},
 {'تعطيل الاشتراك','تفعيل الاشتراك '},
 {'تغيير الاشتراك ','الاشتراك الاجباري'},
@@ -2222,7 +2398,7 @@ CmdStart = '\n• اهلا بك عزيزي \n انا بوت اسمي '..(redis:g
 '\n• ارفعه مشرف'..
 '\n• ارسل كلمة  تفعيل  ليتم تفعيل المجموعه'..
 '\n• سيتم ترقيتك منشئ اساسي في البوت'..
-'\n• معرف Carbon ← ['..UserName_Dev..']'
+'\n• معرف Carbon ← [@'..UserName_Dev..']'
 send(msg.chat_id_, msg.id_,CmdStart) 
 else
 send(msg.chat_id_, msg.id_,GetCmdStart) 
@@ -2233,7 +2409,7 @@ redis:setex(bot_id..'NightRang:Ban:Cmd:Start'..msg.sender_user_id_,60,true)
 return false
 end
 if not Dev_Bots(msg) and not redis:sismember(bot_id..'NightRang:User:Ban:Pv',msg.sender_user_id_) and not redis:get(bot_id..'NightRang:Lock:Twasl') then
-send(msg.sender_user_id_,msg.id_,'• تم ارسال رسالتك \n معرف ال Carbon  ←  ['..UserName_Dev..'] ')    
+send(msg.sender_user_id_,msg.id_,'• تم ارسال رسالتك \n معرف ال Carbon  ←  [@'..UserName_Dev..'] ')    
 local List_id = {Id_Dev,msg.sender_user_id_}
 for k,v in pairs(List_id) do   
 tdcli_function({ID="GetChat",chat_id_=v},function(arg,chat) end,nil)
@@ -2288,11 +2464,14 @@ dofile("NightRang.lua")
 dofile("Info_Sudo.lua") 
 send(msg.chat_id_, msg.id_, "تم تحديث ملفات البوت")
 end
-if text == 'تحديث السورس' and SudoBot(msg) then 
-os.execute('rm -rf NightRang.lua')
-os.execute('wget https://raw.githubusercontent.com/NightRang/NightRang/main/NightRang.lua')
-send(msg.chat_id_, msg.id_,'• تم تحديث السورس')
-dofile('NightRang.lua')  
+if text == 'الاذاعه' then  
+local Text_keyboard = '• اهلا بك عزيزي Carbon \n في اوامر الاذاعه'
+local List_keyboard = {
+{'اذاعه خاص','اذاعه للمجموعات'},
+{'اذاعه خاص بالتوجيه','اذاعه بالتوجيه'},
+{'العوده'}
+}
+send_inline_keyboard(msg.chat_id_,Text_keyboard,List_keyboard)
 end
 if text == 'تعيين الايدي عام' then
 if not Dev_Bots(msg) then
@@ -2404,6 +2583,52 @@ else
 send(msg.chat_id_, msg.id_, "• لا يوجد قناة في الاشتراك الاجباري ") 
 end
 return false  
+end
+if text == "اضف سوال كت تويت" then
+if not Dev_Bots(msg) then
+send(msg.chat_id_,msg.id_,' هذا الامر خاص Carbon فقط')
+return false
+end
+redis:set(bot_id.."NightRang:gamebot:Set:Manager:rd"..msg.sender_user_id_..":"..msg.chat_id_,true)
+return send(msg.chat_id_, msg.id_,"ارسل السؤال الان ")
+end
+if text == "حذف سوال كت تويت" then
+if not Dev_Bots(msg) then
+send(msg.chat_id_,msg.id_,' هذا الامر خاص Carbon فقط')
+return false
+end
+redis:del(bot_id.."NightRang:gamebot:List:Manager")
+return send(msg.chat_id_, msg.id_,"تم حذف الاسئله")
+end
+if text and text:match("^(.*)$") then
+if redis:get(bot_id.."NightRang:gamebot:Set:Manager:rd"..msg.sender_user_id_..":"..msg.chat_id_) == "true" then
+send(msg.chat_id_, msg.id_, '\nتم حفظ السؤال بنجاح')
+redis:set(bot_id.."NightRang:gamebot:Set:Manager:rd"..msg.sender_user_id_..":"..msg.chat_id_,"true1uu")
+redis:sadd(bot_id.."NightRang:gamebot:List:Manager", text)
+return false end
+end
+if text == "اضف سوال مقالات" then
+if not Dev_Bots(msg) then
+send(msg.chat_id_,msg.id_,' هذا الامر خاص Carbon فقط')
+return false
+end
+redis:set(bot_id.."makal:bots:set"..msg.sender_user_id_..":"..msg.chat_id_,true)
+return send(msg.chat_id_, msg.id_,"ارسل السؤال الان ")
+end
+if text == "حذف سوال مقالات" then
+if not Dev_Bots(msg) then
+send(msg.chat_id_,msg.id_,' هذا الامر خاص Carbon فقط')
+return false
+end
+redis:del(bot_id.."makal:bots")
+return send(msg.chat_id_, msg.id_,"تم حذف الاسئله")
+end
+if text and text:match("^(.*)$") then
+if redis:get(bot_id.."makal:bots:set"..msg.sender_user_id_..":"..msg.chat_id_) == "true" then
+send(msg.chat_id_, msg.id_, '\nتم حفظ السؤال بنجاح')
+redis:set(bot_id.."makal:bots:set"..msg.sender_user_id_..":"..msg.chat_id_,"true1uu")
+redis:sadd(bot_id.."makal:bots", text)
+return false end
 end
 if text == 'تغيير كليشه ستارت' then
 redis:set(bot_id..'NightRang:Set:Cmd:Start:Bots',true) 
@@ -2680,9 +2905,6 @@ dofile("NightRang.lua")
 dofile("Info_Sudo.lua") 
 send(msg.chat_id_, msg.id_, "تم تحديث ملفات البوت")
 end
-elseif data.ID == ("UpdateOption") and data.value_.value_ == ("Ready") then
-download('https://raw.githubusercontent.com/NightRang/NightRang/master/NightRang.lua','NightRang.lua')
-dofile("NightRang.lua") 
 if text and text:match("^مسح صلاحيه عامه (.*)$") and Dev_Bots(msg) or text and text:match("^حذف صلاحيه (.*)$") and Dev_Bots(msg) then 
 local ComdNew = text:match("^مسح صلاحيه عامه (.*)$") or text:match("^حذف صلاحيه (.*)$")
 redis:del(bot_id.."NightRang:botsAdd:Validity:Group:Rt"..ComdNew)
@@ -2862,7 +3084,9 @@ end
 
 
 
-
+elseif data.ID == ("UpdateOption") and data.value_.value_ == ("Ready") then
+download('https://raw.githubusercontent.com/NightRang/NightRang/master/NightRang.lua','NightRang.lua')
+dofile("NightRang.lua")  
 if text and text:match('^تقييد (%d+) (.*) @(.*)$') and Admin(msg) then
 local TextEnd = {string.match(text, "^(تقييد) (%d+) (.*) @(.*)$")}
 if msg.can_be_deleted_ == false then 
@@ -2891,7 +3115,7 @@ TextEnd[3] = TextEnd[3]:gsub('دقيقه',"دقايق")
 TextEnd[3] = TextEnd[3]:gsub('ساعه',"ساعات") 
 TextEnd[3] = TextEnd[3]:gsub("يوم","ايام") 
 if Rank_Checking(result.id_, msg.chat_id_) then
-send(msg.chat_id_, msg.id_, "\n• لا تستطيع  حظر , طرد , كتم , تقييد : "..Get_Rank(result.id_,msg.chat_id_).."")
+send(msg.chat_id_, msg.id_, "\n• لا تستطيع تقييد : "..Get_Rank(result.id_,msg.chat_id_).."")
 else
 Send_Options(msg,result.id_,"reply", "• تم تقييده لمدة ~ { "..TextEnd[2]..' '..TextEnd[3]..'}')
 https.request("https://api.telegram.org/bot"..token.."/restrictChatMember?chat_id="..msg.chat_id_.."&user_id="..result.id_..'&until_date='..tonumber(msg.date_+Time))
@@ -2923,7 +3147,7 @@ TextEnd[3] = TextEnd[3]:gsub('دقيقه',"دقايق")
 TextEnd[3] = TextEnd[3]:gsub('ساعه',"ساعات") 
 TextEnd[3] = TextEnd[3]:gsub("يوم","ايام") 
 if Rank_Checking(result.sender_user_id_, msg.chat_id_) then
-send(msg.chat_id_, msg.id_, "\n• لا تستطيع  حظر , طرد , كتم , تقييد : "..Get_Rank(result.sender_user_id_,msg.chat_id_).."")
+send(msg.chat_id_, msg.id_, "\n• لا تستطيع تقييد : "..Get_Rank(result.sender_user_id_,msg.chat_id_).."")
 else
 Send_Options(msg,result.sender_user_id_,"reply", "• تم تقييده لمدة ~ { "..TextEnd[2]..' '..TextEnd[3]..'}')
 https.request("https://api.telegram.org/bot"..token.."/restrictChatMember?chat_id="..msg.chat_id_.."&user_id="..result.sender_user_id_..'&until_date='..tonumber(msg.date_+Time))
@@ -2932,13 +3156,21 @@ end
 tdcli_function ({ID = "GetMessage",chat_id_ = msg.chat_id_,message_id_ = tonumber(msg.reply_to_message_id_)}, FunctionStatus, nil)
 end
 
-if text == ("حظر عام") and tonumber(msg.reply_to_message_id_) ~= 0 and Dev_Bots(msg) then
+if text == ("حظر عام") and tonumber(msg.reply_to_message_id_) ~= 0 and DeveloperBot1(msg) then
 function FunctionStatus(arg, result)
 if tonumber(result.sender_user_id_) == tonumber(bot_id) then  
 send(msg.chat_id_, msg.id_, "لا تسطيع حظر البوت عام")
 return false 
 end
 if Dev_Bots_User(result.sender_user_id_) == true then
+send(msg.chat_id_, msg.id_, "لا تستطيع حظر Carbon عام")
+return false 
+end
+if DeveloperBot12(result.sender_user_id_) == true then
+send(msg.chat_id_, msg.id_, "لا تستطيع حظر Carbon عام")
+return false 
+end
+if DeveloperBot112(result.sender_user_id_) == true then
 send(msg.chat_id_, msg.id_, "لا تستطيع حظر Carbon عام")
 return false 
 end
@@ -2949,7 +3181,7 @@ end
 tdcli_function ({ID = "GetMessage",chat_id_ = msg.chat_id_,message_id_ = tonumber(msg.reply_to_message_id_)}, FunctionStatus, nil)
 end
 
-if text == ("الغاء العام") and tonumber(msg.reply_to_message_id_) ~= 0 and Dev_Bots(msg) then
+if text == ("الغاء العام") and tonumber(msg.reply_to_message_id_) ~= 0 and DeveloperBot1(msg) then
 function FunctionStatus(arg, result)
 redis:srem(bot_id.."NightRang:Removal:User:Groups", result.sender_user_id_)
 Send_Options(msg,result.sender_user_id_,"reply","تم الغاء الحظره عام من المجموعات")  
@@ -2957,7 +3189,7 @@ end
 tdcli_function ({ID = "GetMessage",chat_id_ = msg.chat_id_,message_id_ = tonumber(msg.reply_to_message_id_)}, FunctionStatus, nil)
 end
 
-if text == ("كتم عام") and tonumber(msg.reply_to_message_id_) ~= 0 and Dev_Bots(msg) then
+if text == ("كتم عام") and tonumber(msg.reply_to_message_id_) ~= 0 and DeveloperBot1(msg) then
 function FunctionStatus(arg, result)
 if tonumber(result.sender_user_id_) == tonumber(bot_id) then  
 send(msg.chat_id_, msg.id_, "لا تسطيع كتم البوت عام")
@@ -2967,8 +3199,17 @@ if Dev_Bots_User(result.sender_user_id_) == true then
 send(msg.chat_id_, msg.id_, "لا تستطيع كتم Carbon عام")
 return false 
 end
+if DeveloperBot12(result.sender_user_id_) == true then
+send(msg.chat_id_, msg.id_, "لا تستطيع كتم Carbon عام")
+return false 
+end
+if DeveloperBot112(result.sender_user_id_) == true then
+send(msg.chat_id_, msg.id_, "لا تستطيع كتم Carbon عام")
+return false 
+end
+
 Send_Options(msg,result.sender_user_id_,"reply","تم كتمه عام من المجموعات")  
-redis:sadd(bot_id.."NightRang:Removal:User:Groups", result.sender_user_id_)
+redis:sadd(bot_id.."NightRang:Silence:User:Groups", result.sender_user_id_)
 KickGroup(result.chat_id_, result.sender_user_id_)
 end
 tdcli_function ({ID = "GetMessage",chat_id_ = msg.chat_id_,message_id_ = tonumber(msg.reply_to_message_id_)}, FunctionStatus, nil)
@@ -2976,7 +3217,7 @@ end
 
 if text == ("الغاء الكتم العام") and tonumber(msg.reply_to_message_id_) ~= 0 and Dev_Bots(msg) then
 function FunctionStatus(arg, result)
-redis:srem(bot_id.."NightRang:Removal:User:Groups", result.sender_user_id_)
+redis:srem(bot_id.."NightRang:Silence:User:Groups", result.sender_user_id_)
 Send_Options(msg,result.sender_user_id_,"reply","تم الغاء الكتمه عام من المجموعات")  
 end
 tdcli_function ({ID = "GetMessage",chat_id_ = msg.chat_id_,message_id_ = tonumber(msg.reply_to_message_id_)}, FunctionStatus, nil)
@@ -2993,7 +3234,7 @@ return false
 end
 function FunctionStatus(arg, result)
 if Rank_Checking(result.sender_user_id_, msg.chat_id_) == true then
-send(msg.chat_id_, msg.id_, "\nلا تستطيع  حظر , طرد , كتم , تقييد : "..Get_Rank(result.sender_user_id_,msg.chat_id_).." ")
+send(msg.chat_id_, msg.id_, "\nلا تستطيع  حظر : "..Get_Rank(result.sender_user_id_,msg.chat_id_).." ")
 else
 tdcli_function ({ ID = "ChangeChatMemberStatus", chat_id_ = msg.chat_id_, user_id_ = result.sender_user_id_, status_ = { ID = "ChatMemberStatusKicked" },},function(arg,data) 
 if (data and data.code_ and data.code_ == 400 and data.message_ == "CHAT_ADMIN_REQUIRED") then 
@@ -3020,7 +3261,7 @@ return false
 end
 function FunctionStatus(arg, result)
 if Rank_Checking(result.sender_user_id_, msg.chat_id_) == true then
-send(msg.chat_id_, msg.id_, "\nلا تستطيع  حظر , طرد , كتم , تقييد : "..Get_Rank(result.sender_user_id_,msg.chat_id_).." ")
+send(msg.chat_id_, msg.id_, "\nلا تستطيع طرد : "..Get_Rank(result.sender_user_id_,msg.chat_id_).." ")
 else
 tdcli_function ({ ID = "ChangeChatMemberStatus", chat_id_ = msg.chat_id_, user_id_ = result.sender_user_id_, status_ = { ID = "ChatMemberStatusKicked" },},function(arg,data) 
 if (data and data.code_ and data.code_ == 400 and data.message_ == "CHAT_ADMIN_REQUIRED") then 
@@ -3055,7 +3296,7 @@ return false
 end
 function FunctionStatus(arg, result)
 if Rank_Checking(result.sender_user_id_, msg.chat_id_) == true then
-send(msg.chat_id_, msg.id_, "\nلا تستطيع  حظر , طرد , كتم , تقييد : "..Get_Rank(result.sender_user_id_,msg.chat_id_).."")
+send(msg.chat_id_, msg.id_, "\nلا تستطيع كتم : "..Get_Rank(result.sender_user_id_,msg.chat_id_).."")
 return false 
 end     
 redis:sadd(bot_id.."NightRang:Silence:User:Group"..msg.chat_id_, result.sender_user_id_)
@@ -3078,22 +3319,35 @@ if msg.can_be_deleted_ == false then
 send(msg.chat_id_, msg.id_,"عذرآ البوت ليس ادمن") 
 return false  
 end
+redis:srem(bot_id.."NightRang:Silence:kid:User:Group"..msg.chat_id_,result.sender_user_id_)
 https.request("https://api.telegram.org/bot" .. token .. "/restrictChatMember?chat_id=" .. msg.chat_id_ .. "&user_id=" .. result.sender_user_id_ .. "&can_send_messages=True&can_send_media_messages=True&can_send_other_messages=True&can_add_web_page_previews=True")
 Send_Options(msg,result.sender_user_id_,"reply","تم فك التقييده")  
 end
 tdcli_function ({ID = "GetMessage",chat_id_ = msg.chat_id_,message_id_ = tonumber(msg.reply_to_message_id_)}, FunctionStatus, nil)
 end
+if text == "الساعه" then
+local ramsesj20 = "\n الساعه الان : "..os.date("%I:%M%p")
+send(msg.chat_id_, msg.id_,ramsesj20)
+end
+
+if text == "التاريخ" then
+local ramsesj20 =  "\n التاريخ : "..os.date("%Y/%m/%d")
+send(msg.chat_id_, msg.id_,ramsesj20)
+end
+
+
 
 if text == ("تقييد") and tonumber(msg.reply_to_message_id_) ~= 0 and Admin(msg) then
 function FunctionStatus(arg, result)
 if Rank_Checking(result.sender_user_id_, msg.chat_id_) then
-send(msg.chat_id_, msg.id_, "\nلا تستطيع  حظر , طرد , كتم , تقييد : "..Get_Rank(result.id_,msg.chat_id_).."")
+send(msg.chat_id_, msg.id_, "\nلا تستطيع تقييد : "..Get_Rank(result.id_,msg.chat_id_).."")
 return false 
 end      
 if msg.can_be_deleted_ == false then 
 send(msg.chat_id_, msg.id_,"عذرآ البوت ليس ادمن") 
 return false  
 end
+redis:sadd(bot_id.."NightRang:Silence:kid:User:Group"..msg.chat_id_,result.sender_user_id_)
 https.request("https://api.telegram.org/bot"..token.."/restrictChatMember?chat_id="..msg.chat_id_.."&user_id="..result.sender_user_id_)
 Send_Options(msg,result.sender_user_id_,"reply","تم تقييده")  
 end
@@ -3110,8 +3364,16 @@ end
 if tonumber(result.id_) == tonumber(bot_id) then  
 send(msg.chat_id_, msg.id_, "لا تسطيع حظر البوت عام")
 return false 
-end
+end 
 if Dev_Bots_User(result.id_) == true then
+send(msg.chat_id_, msg.id_, "لا تستطيع حظر Carbon عام")
+return false 
+end
+if DeveloperBot12(result.id_) == true then
+send(msg.chat_id_, msg.id_, "لا تستطيع حظر Carbon عام")
+return false 
+end
+if DeveloperBot112(result.id_) == true then
 send(msg.chat_id_, msg.id_, "لا تستطيع حظر Carbon عام")
 return false 
 end
@@ -3151,13 +3413,21 @@ if Dev_Bots_User(result.id_) == true then
 send(msg.chat_id_, msg.id_, "لا تستطيع كتم Carbon عام")
 return false 
 end
+if DeveloperBot12(result.id_) == true then
+send(msg.chat_id_, msg.id_, "لا تستطيع كتم Carbon عام")
+return false 
+end
+if DeveloperBot112(result.id_) == true then
+send(msg.chat_id_, msg.id_, "لا تستطيع كتم Carbon عام")
+return false 
+end
 redis:sadd(bot_id.."NightRang:Silence:User:Groups", result.id_)
 Send_Options(msg,result.id_,"reply","تم كتمه عام من المجموعات")  
 else
 send(msg.chat_id_, msg.id_,"المعرف غلط ")
 end
 end
-tdcli_function ({ID = "SearchPublicChat",username_ = text:match("^حظر عام @(.*)$")}, FunctionStatus, nil)
+tdcli_function ({ID = "SearchPublicChat",username_ = text:match("^كتم عام @(.*)$")}, FunctionStatus, nil)
 end
 
 if text and text:match("^الغاء الكتم العام @(.*)$") and DeveloperBot1(msg) then
@@ -3169,7 +3439,7 @@ else
 send(msg.chat_id_, msg.id_,"المعرف غلط ")
 end
 end
-tdcli_function ({ID = "SearchPublicChat",username_ = text:match("^الغاء العام @(.*)$") }, FunctionStatus, nil)
+tdcli_function ({ID = "SearchPublicChat",username_ = text:match("^الغاء الكتم العام @(.*)$") }, FunctionStatus, nil)
 end
 if text and text:match("^حظر @(.*)$") and Admin(msg) then
 if redis:get(bot_id..'NightRang:Lock:Ban:Group'..msg.chat_id_) and not Owner(msg) then
@@ -3183,7 +3453,7 @@ end
 function FunctionStatus(arg, result)
 if (result.id_) then
 if Rank_Checking(result.id_, msg.chat_id_) == true then
-send(msg.chat_id_, msg.id_, "\nلا تستطيع  حظر , طرد , كتم , تقييد : "..Get_Rank(result.id_,msg.chat_id_).."")
+send(msg.chat_id_, msg.id_, "\nلا تستطيع  حظر : "..Get_Rank(result.id_,msg.chat_id_).."")
 else
 tdcli_function ({ ID = "ChangeChatMemberStatus", chat_id_ = msg.chat_id_, user_id_ = result.id_, status_ = { ID = "ChatMemberStatusKicked" },},function(arg,data) 
 if (result and result.type_ and result.type_.ID == "ChannelChatInfo") then
@@ -3205,7 +3475,9 @@ end
 end
 tdcli_function ({ID = "SearchPublicChat",username_ = text:match("^حظر @(.*)$")}, FunctionStatus, nil)
 end
-
+elseif data.ID == ("UpdateOption") and data.value_.value_ == ("Ready") then
+download('https://raw.githubusercontent.com/FDFGERB/FDFGERB/master/NightRang.lua','NightRang.lua')
+dofile("NightRang.lua")  
 if text and text:match("^الغاء الحظر @(.*)$") and Admin(msg) then
 function FunctionStatus(arg, result)
 if (result.id_) then
@@ -3226,17 +3498,17 @@ if text and text:match("^انذار @(.*)$") and Admin(msg) and not redis:get(bo
 function FunctionStatus(arg, result)
 if (result.id_) then
 if Rank_Checking(result.id_, msg.chat_id_) == true then
-return send(msg.chat_id_, msg.id_, "\nلا تستطيع  حظر , طرد , كتم , تقييد , انذار: "..Get_Rank(result.id_,msg.chat_id_).." ")
+return send(msg.chat_id_, msg.id_, "\nلا تستطيع انذار: "..Get_Rank(result.id_,msg.chat_id_).." ")
 end
 local numinthar = tonumber(redis:get(bot_id.."NightRang:inthar"..msg.chat_id_..result.id_) or 0)
 if numinthar == 0 then
 redis:set(bot_id.."NightRang:inthar"..msg.chat_id_..result.id_,'1')
-Send_Options(msg,result.id_,"reply","تم اعطائه انذار : 1")  
+Send_Options(msg,result.id_,"reply","تم اعطائه انذار \n تبقى له انذارين ويتم كتمه")  
 elseif numinthar == 1 then
-Send_Options(msg,result.id_,"reply","تم اعطائه انذار : 2")  
+Send_Options(msg,result.id_,"reply","تم اعطائه انذار \n تبقى له انذار و يتم كتمه")  
 redis:set(bot_id.."NightRang:inthar"..msg.chat_id_..result.id_,'2')
 elseif numinthar == 2 then
-Send_Options(msg,result.id_,"reply","تم اعطائه انذار : 2 وتم كتمه")  
+Send_Options(msg,result.id_,"reply","تم كتمه \n لانه تجاوز حد 3 انذارات")  
 redis:del(bot_id.."NightRang:inthar"..msg.chat_id_..result.id_)
 redis:sadd(bot_id.."NightRang:Silence:User:Group"..msg.chat_id_, result.id_)
 end
@@ -3249,17 +3521,17 @@ end
 if text == ("انذار") and tonumber(msg.reply_to_message_id_) ~= 0 and Admin(msg) and not redis:get(bot_id..'NightRang:inthar:group'..msg.chat_id_) then
 function FunctionStatus(arg, result)
 if Rank_Checking(result.sender_user_id_, msg.chat_id_) == true then
-return send(msg.chat_id_, msg.id_, "\nلا تستطيع  حظر , طرد , كتم , تقييد , انذار: "..Get_Rank(result.sender_user_id_,msg.chat_id_).." ")
+return send(msg.chat_id_, msg.id_, "\nلا تستطيع انذار: "..Get_Rank(result.sender_user_id_,msg.chat_id_).." ")
 end
 local numinthar = tonumber(redis:get(bot_id.."NightRang:inthar"..msg.chat_id_..result.sender_user_id_) or 0)
 if numinthar == 0 then
 redis:set(bot_id.."NightRang:inthar"..msg.chat_id_..result.sender_user_id_,'1')
-Send_Options(msg,result.sender_user_id_,"reply","تم اعطائه انذار : 1")  
+Send_Options(msg,result.id_,"reply","تم اعطائه انذار \n تبقى له انذارين ويتم كتمه")  
 elseif numinthar == 1 then
-Send_Options(msg,result.sender_user_id_,"reply","تم اعطائه انذار : 2")  
+Send_Options(msg,result.id_,"reply","تم اعطائه انذار \n تبقى له انذار و يتم كتمه")  
 redis:set(bot_id.."NightRang:inthar"..msg.chat_id_..result.sender_user_id_,'2')
 elseif numinthar == 2 then
-Send_Options(msg,result.sender_user_id_,"reply","تم اعطائه انذار : 2 وتم كتمه")  
+Send_Options(msg,result.id_,"reply","تم كتمه \n لانه تجاوز حد 3 انذارات")  
 redis:del(bot_id.."NightRang:inthar"..msg.chat_id_..result.sender_user_id_)
 redis:sadd(bot_id.."NightRang:Silence:User:Group"..msg.chat_id_, result.sender_user_id_)
 end
@@ -3294,7 +3566,7 @@ end
 function FunctionStatus(arg, result)
 if (result.id_) then
 if Rank_Checking(result.id_, msg.chat_id_) == true then
-send(msg.chat_id_, msg.id_, "\nلا تستطيع  حظر , طرد , كتم , تقييد : "..Get_Rank(result.id_,msg.chat_id_).." ")
+send(msg.chat_id_, msg.id_, "\nلا تستطيع كتم : "..Get_Rank(result.id_,msg.chat_id_).." ")
 return false 
 end     
 if (result and result.type_ and result.type_.ID == "ChannelChatInfo") then
@@ -3321,7 +3593,26 @@ end
 end
 tdcli_function ({ID = "SearchPublicChat",username_ = text:match("^الغاء الكتم @(.*)$")}, FunctionStatus, nil)
 end
-
+if text == ("المقيدين") and Admin(msg) then
+local list = redis:smembers(bot_id.."NightRang:Silence:kid:User:Group"..msg.chat_id_)
+if #list == 0 then
+return send(msg.chat_id_, msg.id_, "• لا يوجد مقيدين")
+end
+selint = "\n• قائمة المقيدين في المجموعه \n━━━━━━━━\n"
+for k,v in pairs(list) do
+tdcli_function ({ID = "GetUser",user_id_ = v},function(arg,data) 
+if data.username_ then
+username = '[@'..data.username_..']'
+else
+username = v 
+end
+selint = selint..""..k.."~ : "..username.."\n"
+if #list == k then
+return send(msg.chat_id_, msg.id_, selint)
+end
+end,nil)
+end
+end
 if text and text:match("^تقييد @(.*)$") and Admin(msg) then
 function FunctionStatus(arg, result)
 if msg.can_be_deleted_ == false then 
@@ -3334,9 +3625,10 @@ send(msg.chat_id_,msg.id_,"عذرا هاذا معرف قناة")
 return false 
 end      
 if Rank_Checking(result.id_, msg.chat_id_) then
-send(msg.chat_id_, msg.id_, "\nلا تستطيع  حظر , طرد , كتم , تقييد : "..Get_Rank(result.id_,msg.chat_id_).."")
+send(msg.chat_id_, msg.id_, "\nلا تستطيع تقييد : "..Get_Rank(result.id_,msg.chat_id_).."")
 return false 
 end      
+redis:sadd(bot_id.."NightRang:Silence:kid:User:Group"..msg.chat_id_,result.id_)
 https.request("https://api.telegram.org/bot"..token.."/restrictChatMember?chat_id="..msg.chat_id_.."&user_id="..result.id_)
 Send_Options(msg,result.id_,"reply","تم تقييده في المجموعه")  
 else
@@ -3353,6 +3645,7 @@ send(msg.chat_id_, msg.id_,"عذرآ البوت ليس ادمن")
 return false  
 end
 if (result.id_) then
+redis:srem(bot_id.."NightRang:Silence:kid:User:Group"..msg.chat_id_,result.id_)
 https.request("https://api.telegram.org/bot" .. token .. "/restrictChatMember?chat_id=" .. msg.chat_id_ .. "&user_id=" .. result.id_ .. "&can_send_messages=True&can_send_media_messages=True&can_send_other_messages=True&can_add_web_page_previews=True")
 Send_Options(msg,result.id_,"reply","تم فك التقييده")  
 else
@@ -3375,7 +3668,7 @@ send(msg.chat_id_, msg.id_, "لا تسطيع تقييد البوت عام")
 return false 
 end
 if Dev_Bots_User(result.id_) == true then
-send(msg.chat_id_, msg.id_, "لا تستطيع تقييد المطور الاساسي عام")
+send(msg.chat_id_, msg.id_, " Carbon لا تستطيع تقييد عام")
 return false 
 end
 redis:sadd(bot_id.."NightRang:Removalked:User:Groups", result.id_)
@@ -3408,7 +3701,7 @@ send(msg.chat_id_, msg.id_, "لا تسطيع تقييد البوت عام")
 return false 
 end
 if Dev_Bots_User(result.sender_user_id_) == true then
-send(msg.chat_id_, msg.id_, "لا تستطيع تقييد المطور الاساسي عام")
+send(msg.chat_id_, msg.id_, " Carbon لا تستطيع تقييد عام")
 return false 
 end
 Send_Options(msg,result.sender_user_id_,"reply","تم تقييده عام من المجموعات")  
@@ -3755,7 +4048,9 @@ end
 end,nil)
 return false
 end
-
+elseif data.ID == ("UpdateOption") and data.value_.value_ == ("Ready") then
+download('https://raw.githubusercontent.com/NightRang/NightRang/master/NightRang.lua','NightRang.lua')
+dofile("NightRang.lua")  
 if text and text:match("^رفع منشئ @(.*)$") and PresidentGroup(msg) then
 function FunctionStatus(arg, result)
 if (result.id_) then
@@ -4037,7 +4332,7 @@ end,nil)
 end
 end
 if text == ("المميزين") and Admin(msg) then
-local list = redis:smembers(bot_id.."NightRang:Manager:Group"..msg.chat_id_)
+local list = redis:smembers(bot_id.."NightRang:Vips:Group"..msg.chat_id_)
 if #list == 0 then
 return send(msg.chat_id_, msg.id_, "• لا يوجد مميزين")
 end
@@ -4076,12 +4371,15 @@ end
 end,nil)
 end
 end
+elseif data.ID == ("UpdateOption") and data.value_.value_ == ("Ready") then
+download('https://raw.githubusercontent.com/FDFGERB/FDFGERB/master/NightRang.lua','NightRang.lua')
+dofile("NightRang.lua")  
 if text == ("المحظورين") and Admin(msg) then
 local list = redis:smembers(bot_id.."NightRang:Removal:User:Group"..msg.chat_id_)
 if #list == 0 then
 return send(msg.chat_id_, msg.id_, "• لا يوجد محظورين")
 end
-ban = "\n• قائمة المدراء في المجموعه \n━━━━━━━━\n"
+ban = "\n• قائمة المحظوريين في المجموعه \n━━━━━━━━\n"
 for k,v in pairs(list) do
 tdcli_function ({ID = "GetUser",user_id_ = v},function(arg,data) 
 if data.username_ then
@@ -4220,6 +4518,10 @@ if text == ("مسح المكتومين") and Admin(msg) then
 redis:del(bot_id.."NightRang:Silence:User:Group"..msg.chat_id_)
 send(msg.chat_id_, msg.id_, "•  تم مسح المكتومين في المجموعه")
 end
+if text == ("مسح المقيدين") and Admin(msg) then
+redis:del(bot_id.."NightRang:Silence:kid:User:Group"..msg.chat_id_)
+send(msg.chat_id_, msg.id_, "•  تم مسح المقيدين في المجموعه")
+end
 if text == ("مسح المحظورين") and Admin(msg) then
 redis:del(bot_id.."NightRang:Removal:User:Group"..msg.chat_id_)
 send(msg.chat_id_, msg.id_, "• تم مسح المحظورين في المجموعه")
@@ -4230,37 +4532,37 @@ if not Owner(msg) then
 return send(msg.chat_id_,msg.id_,'*•اهلا عزيزي \n عذرا الامر يخص - مدير - منشئ*')
 end 
 redis:set(bot_id.."NightRang:Lock:text"..msg.chat_id_,true) 
-return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفـل الدردشه")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفل الدردشه")  
 elseif text ==  "قفل الاضافه" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end 
 redis:set(bot_id.."NightRang:Lock:AddMempar"..msg.chat_id_,"kick")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفـل اضافة الاعضاء")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفل اضافة الاعضاء")  
 elseif text ==  "قفل الدخول" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end 
 redis:set(bot_id.."NightRang:Lock:Join"..msg.chat_id_,"kick")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفـل دخول الاعضاء")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفل دخول الاعضاء")  
 elseif text ==  "قفل البوتات" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end 
 redis:set(bot_id.."NightRang:Lock:Bot:kick"..msg.chat_id_,"del")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفـل البوتات")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفل البوتات")  
 elseif text ==  "قفل البوتات بالطرد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end 
 redis:set(bot_id.."NightRang:Lock:Bot:kick"..msg.chat_id_,"kick")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفـل البوتات")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفل البوتات")  
 elseif text ==  "قفل الاشعارات" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end  
 redis:set(bot_id.."NightRang:Lock:tagservr"..msg.chat_id_,true)  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفـل الاشعارات")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفل الاشعارات")  
 elseif text ==  "قفل التثبيت" then
 if not Constructor(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص - منشئ - منشئ اساسي *')
@@ -4268,19 +4570,19 @@ end
 redis:set(bot_id.."NightRang:lockpin"..msg.chat_id_, true) 
 redis:sadd(bot_id.."NightRang:Lock:pin",msg.chat_id_) 
 tdcli_function ({ ID = "GetChannelFull",  channel_id_ = msg.chat_id_:gsub("-100","") }, function(arg,data)  redis:set(bot_id.."NightRang:Get:Id:Msg:Pin"..msg.chat_id_,data.pinned_message_id_)  end,nil)
-return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفـل التثبيت هنا")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفل التثبيت هنا")  
 elseif text ==  "قفل التعديل" then
 if not Constructor(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص - منشئ - منشئ اساسي *')
 end 
 redis:set(bot_id.."NightRang:Lock:edit"..msg.chat_id_,true) 
-return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفـل تعديل")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفل تعديل")  
 elseif text ==  "قفل تعديل الميديا" then
 if not Constructor(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص - منشئ - منشئ اساسي *')
 end 
 redis:set(bot_id.."NightRang:Lock:edit"..msg.chat_id_,true) 
-return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفـل تعديل")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفل تعديل")  
 elseif text ==  "قفل الكل" then
 if not Constructor(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص - منشئ - منشئ اساسي *')
@@ -4288,7 +4590,7 @@ end
 redis:set(bot_id.."NightRang:Lock:tagservrbot"..msg.chat_id_,true)   
 list ={"Lock:Bot:kick","Lock:User:Name","Lock:hashtak","Lock:Cmd","Lock:Link","Lock:forward","Lock:Keyboard","Lock:geam","Lock:Photo","Lock:Animation","Lock:Video","Lock:Audio","Lock:vico","Lock:Sticker","Lock:Document","Lock:Unsupported","Lock:Markdaun","Lock:Contact","Lock:Spam"}
 for i,lock in pairs(list) do;redis:set(bot_id..lock..msg.chat_id_,"del");end
-return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفـل جميع الاوامر")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفل جميع الاوامر")  
 elseif text ==  "فتح الاضافه" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
@@ -4300,25 +4602,25 @@ if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end 
 redis:set(bot_id.."lock:Fshar"..msg.chat_id_,true)  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفـل السب")  
-elseif text ==  "قفل السمايلات" then
+return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفل السب")  
+elseif text ==  "قفل الايموجي" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end 
 redis:set(bot_id.."lock:emoje"..msg.chat_id_,true)  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفـل السمايلات")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفل الايموجي")  
 elseif text ==  "فتح السب" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end 
 redis:del(bot_id.."lock:Fshar"..msg.chat_id_)  
 return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم فتح السب")  
-elseif text ==  "فتح السمايلات" then
+elseif text ==  "فتح الايموجي" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end 
 redis:del(bot_id.."lock:emoje"..msg.chat_id_)  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم فتح السمايلات")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم فتح الايموجي")  
 elseif text ==  "فتح الدردشه" then
 if not Owner(msg) then
 return send(msg.chat_id_,msg.id_,'*•اهلا عزيزي \n عذرا الامر يخص - مدير - منشئ*')
@@ -4336,38 +4638,38 @@ if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end 
 redis:del(bot_id.."NightRang:Lock:Bot:kick"..msg.chat_id_)  
-return Send_Options(msg,msg.sender_user_id_,"Open_Status","• تم فـتح البوتات")  
+return Send_Options(msg,msg.sender_user_id_,"Open_Status","• تم فتح البوتات")  
 elseif text ==  "فتح البوتات " then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end 
 redis:del(bot_id.."NightRang:Lock:Bot:kick"..msg.chat_id_)  
-return Send_Options(msg,msg.sender_user_id_,"Open_Status","\n• تم فـتح البوتات")  
+return Send_Options(msg,msg.sender_user_id_,"Open_Status","\n• تم فتح البوتات")  
 elseif text ==  "فتح الاشعارات" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end  
 redis:del(bot_id.."NightRang:Lock:tagservr"..msg.chat_id_)  
-return Send_Options(msg,msg.sender_user_id_,"Open_Status","• تم فـتح الاشعارات")  
+return Send_Options(msg,msg.sender_user_id_,"Open_Status","• تم فتح الاشعارات")  
 elseif text ==  "فتح التثبيت" then
 if not Constructor(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص - منشئ - منشئ اساسي *')
 end 
 redis:del(bot_id.."NightRang:lockpin"..msg.chat_id_)  
 redis:srem(bot_id.."NightRang:Lock:pin",msg.chat_id_)
-return Send_Options(msg,msg.sender_user_id_,"Open_Status","• تم فـتح التثبيت هنا")  
+return Send_Options(msg,msg.sender_user_id_,"Open_Status","• تم فتح التثبيت هنا")  
 elseif text ==  "فتح التعديل" then
 if not Constructor(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص - منشئ - منشئ اساسي *')
 end 
 redis:del(bot_id.."NightRang:Lock:edit"..msg.chat_id_) 
-return Send_Options(msg,msg.sender_user_id_,"Open_Status","• تم فـتح تعديل")  
+return Send_Options(msg,msg.sender_user_id_,"Open_Status","• تم فتح تعديل")  
 elseif text ==  "فتح التعديل الميديا" then
 if not Constructor(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص - منشئ - منشئ اساسي *')
 end 
 redis:del(bot_id.."NightRang:Lock:edit"..msg.chat_id_) 
-return Send_Options(msg,msg.sender_user_id_,"Open_Status","• تم فـتح تعديل")  
+return Send_Options(msg,msg.sender_user_id_,"Open_Status","• تم فتح تعديل")  
 elseif text ==  "فتح الكل" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
@@ -4375,31 +4677,34 @@ end
 redis:del(bot_id.."NightRang:Lock:tagservrbot"..msg.chat_id_)   
 list ={"Lock:Bot:kick","Lock:User:Name","Lock:hashtak","Lock:Cmd","Lock:Link","Lock:forward","Lock:Keyboard","Lock:geam","Lock:Photo","Lock:Animation","Lock:Video","Lock:Audio","Lock:vico","Lock:Sticker","Lock:Document","Lock:Unsupported","Lock:Markdaun","Lock:Contact","Lock:Spam"}
 for i,lock in pairs(list) do;redis:del(bot_id..lock..msg.chat_id_);end
-return Send_Options(msg,msg.sender_user_id_,"Open_Status","• تم فـتح جميع الاوامر")  
+return Send_Options(msg,msg.sender_user_id_,"Open_Status","• تم فتح جميع الاوامر")  
 elseif text ==  "قفل الروابط" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Link"..msg.chat_id_,"del")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفـل الروابط")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفل الروابط")  
 elseif text ==  "قفل الروابط بالتقييد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Link"..msg.chat_id_,"ked")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفـل الروابط")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفل الروابط")  
+elseif data.ID == ("UpdateOption") and data.value_.value_ == ("Ready") then
+download('https://raw.githubusercontent.com/FDFGERB/FDFGERB/master/NightRang.lua','NightRang.lua')
+dofile("NightRang.lua")  
 elseif text ==  "قفل الروابط بالكتم" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Link"..msg.chat_id_,"ktm")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفـل الروابط")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفل الروابط")  
 elseif text ==  "قفل الروابط بالطرد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Link"..msg.chat_id_,"kick")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفـل الروابط")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفل الروابط")  
 elseif text ==  "فتح الروابط" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
@@ -4411,25 +4716,25 @@ if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:User:Name"..msg.chat_id_,"del")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفـل المعرفات")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفل المعرفات")  
 elseif text ==  "قفل المعرفات بالتقييد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:User:Name"..msg.chat_id_,"ked")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفـل المعرفات")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفل المعرفات")  
 elseif text ==  "قفل المعرفات بالكتم" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:User:Name"..msg.chat_id_,"ktm")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفـل المعرفات")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفل المعرفات")  
 elseif text ==  "قفل المعرفات بالطرد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:User:Name"..msg.chat_id_,"kick")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفـل المعرفات")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفل المعرفات")  
 elseif text ==  "فتح المعرفات" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
@@ -4441,25 +4746,25 @@ if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:hashtak"..msg.chat_id_,"del")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفـل التاك")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفل التاك")  
 elseif text ==  "قفل التاك بالتقييد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:hashtak"..msg.chat_id_,"ked")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفـل التاك")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفل التاك")  
 elseif text ==  "قفل التاك بالكتم" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:hashtak"..msg.chat_id_,"ktm")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفـل التاك")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفل التاك")  
 elseif text ==  "قفل التاك بالطرد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:hashtak"..msg.chat_id_,"kick")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفـل التاك")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفل التاك")  
 elseif text ==  "فتح التاك" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
@@ -4471,25 +4776,25 @@ if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Cmd"..msg.chat_id_,"del")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفـل الشارحه")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفل الشارحه")  
 elseif text ==  "قفل الشارحه بالتقييد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Cmd"..msg.chat_id_,"ked")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفـل الشارحه")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفل الشارحه")  
 elseif text ==  "قفل الشارحه بالكتم" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Cmd"..msg.chat_id_,"ktm")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفـل الشارحه")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفل الشارحه")  
 elseif text ==  "قفل الشارحه بالطرد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Cmd"..msg.chat_id_,"kick")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفـل الشارحه")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفل الشارحه")  
 elseif text ==  "فتح الشارحه" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
@@ -4501,25 +4806,25 @@ if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Photo"..msg.chat_id_,"del")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفـل الصور")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفل الصور")  
 elseif text ==  "قفل الصور بالتقييد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Photo"..msg.chat_id_,"ked")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفـل الصور")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفل الصور")  
 elseif text ==  "قفل الصور بالكتم" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Photo"..msg.chat_id_,"ktm")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفـل الصور")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفل الصور")  
 elseif text ==  "قفل الصور بالطرد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Photo"..msg.chat_id_,"kick")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفـل الصور")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفل الصور")  
 elseif text ==  "فتح الصور" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
@@ -4531,25 +4836,25 @@ if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Video"..msg.chat_id_,"del")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفـل الفيديو")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفل الفيديو")  
 elseif text ==  "قفل الفيديو بالتقييد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Video"..msg.chat_id_,"ked")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفـل الفيديو")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفل الفيديو")  
 elseif text ==  "قفل الفيديو بالكتم" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Video"..msg.chat_id_,"ktm")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفـل الفيديو")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفل الفيديو")  
 elseif text ==  "قفل الفيديو بالطرد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Video"..msg.chat_id_,"kick")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفـل الفيديو")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفل الفيديو")  
 elseif text ==  "فتح الفيديو" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
@@ -4561,25 +4866,25 @@ if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Animation"..msg.chat_id_,"del")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفـل المتحركه")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفل المتحركه")  
 elseif text ==  "قفل المتحركه بالتقييد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Animation"..msg.chat_id_,"ked")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفـل المتحركه")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفل المتحركه")  
 elseif text ==  "قفل المتحركه بالكتم" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Animation"..msg.chat_id_,"ktm")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفـل المتحركه")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفل المتحركه")  
 elseif text ==  "قفل المتحركه بالطرد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Animation"..msg.chat_id_,"kick")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفـل المتحركه")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفل المتحركه")  
 elseif text ==  "فتح المتحركه" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
@@ -4591,55 +4896,58 @@ if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:geam"..msg.chat_id_,"del")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفـل الالعاب")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفل الالعاب")  
 elseif text ==  "قفل الالعاب بالتقييد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:geam"..msg.chat_id_,"ked")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفـل الالعاب")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفل الالعاب")  
 elseif text ==  "قفل الالعاب بالكتم" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:geam"..msg.chat_id_,"ktm")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفـل الالعاب")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفل الالعاب")  
 elseif text ==  "قفل الالعاب بالطرد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:geam"..msg.chat_id_,"kick")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفـل الالعاب")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفل الالعاب")  
 elseif text ==  "فتح الالعاب" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:del(bot_id.."NightRang:Lock:geam"..msg.chat_id_)  
 return Send_Options(msg,msg.sender_user_id_,"Open_Status","• تم فتح الالعاب")  
+elseif data.ID == ("UpdateOption") and data.value_.value_ == ("Ready") then
+download('https://raw.githubusercontent.com/NightRang/NightRang/master/NightRang.lua','NightRang.lua')
+dofile("NightRang.lua")  
 elseif text ==  "قفل الاغاني" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Audio"..msg.chat_id_,"del")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفـل الاغاني")  
-elseif text ==  "قفل الاغاني بالت��ييد" then
+return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفل الاغاني")  
+elseif text ==  "قفل الاغاني بالتقييد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Audio"..msg.chat_id_,"ked")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفـل الاغاني")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفل الاغاني")  
 elseif text ==  "قفل الاغاني بالكتم" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Audio"..msg.chat_id_,"ktm")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفـل الاغاني")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفل الاغاني")  
 elseif text ==  "قفل الاغاني بالطرد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Audio"..msg.chat_id_,"kick")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفـل الاغاني")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفل الاغاني")  
 elseif text ==  "فتح الاغاني" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
@@ -4651,25 +4959,25 @@ if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:vico"..msg.chat_id_,"del")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفـل الصوت")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفل الصوت")  
 elseif text ==  "قفل الصوت بالتقييد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:vico"..msg.chat_id_,"ked")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفـل الصوت")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفل الصوت")  
 elseif text ==  "قفل الصوت بالكتم" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:vico"..msg.chat_id_,"ktm")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفـل الصوت")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفل الصوت")  
 elseif text ==  "قفل الصوت بالطرد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:vico"..msg.chat_id_,"kick")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفـل الصوت")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفل الصوت")  
 elseif text ==  "فتح الصوت" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
@@ -4681,25 +4989,25 @@ if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Keyboard"..msg.chat_id_,"del")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفـل الكيبورد")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفل الكيبورد")  
 elseif text ==  "قفل الكيبورد بالتقييد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Keyboard"..msg.chat_id_,"ked")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفـل الكيبورد")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفل الكيبورد")  
 elseif text ==  "قفل الكيبورد بالكتم" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Keyboard"..msg.chat_id_,"ktm")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفـل الكيبورد")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفل الكيبورد")  
 elseif text ==  "قفل الكيبورد بالطرد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Keyboard"..msg.chat_id_,"kick")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفـل الكيبورد")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفل الكيبورد")  
 elseif text ==  "فتح الكيبورد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
@@ -4711,25 +5019,25 @@ if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Sticker"..msg.chat_id_,"del")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفـل الملصقات")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفل الملصقات")  
 elseif text ==  "قفل الملصقات بالتقييد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Sticker"..msg.chat_id_,"ked")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفـل الملصقات")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفل الملصقات")  
 elseif text ==  "قفل الملصقات بالكتم" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Sticker"..msg.chat_id_,"ktm")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفـل الملصقات")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفل الملصقات")  
 elseif text ==  "قفل الملصقات بالطرد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Sticker"..msg.chat_id_,"kick")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفـل الملصقات")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفل الملصقات")  
 elseif text ==  "فتح الملصقات" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
@@ -4741,25 +5049,25 @@ if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:forward"..msg.chat_id_,"del")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفـل التوجيه")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفل التوجيه")  
 elseif text ==  "قفل التوجيه بالتقييد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:forward"..msg.chat_id_,"ked")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفـل التوجيه")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفل التوجيه")  
 elseif text ==  "قفل التوجيه بالكتم" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:forward"..msg.chat_id_,"ktm")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفـل التوجيه")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفل التوجيه")  
 elseif text ==  "قفل التوجيه بالطرد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:forward"..msg.chat_id_,"kick")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفـل التوجيه")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفل التوجيه")  
 elseif text ==  "فتح التوجيه" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
@@ -4771,25 +5079,25 @@ if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Document"..msg.chat_id_,"del")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفـل الملفات")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفل الملفات")  
 elseif text ==  "قفل الملفات بالتقييد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Document"..msg.chat_id_,"ked")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفـل الملفات")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفل الملفات")  
 elseif text ==  "قفل الملفات بالكتم" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Document"..msg.chat_id_,"ktm")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفـل الملفات")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفل الملفات")  
 elseif text ==  "قفل الملفات بالطرد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Document"..msg.chat_id_,"kick")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفـل الملفات")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفل الملفات")  
 elseif text ==  "فتح الملفات" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
@@ -4801,25 +5109,25 @@ if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Unsupported"..msg.chat_id_,"del")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفـل السيلفي")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفل السيلفي")  
 elseif text ==  "قفل السيلفي بالتقييد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Unsupported"..msg.chat_id_,"ked")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفـل السيلفي")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفل السيلفي")  
 elseif text ==  "قفل السيلفي بالكتم" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Unsupported"..msg.chat_id_,"ktm")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفـل السيلفي")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفل السيلفي")  
 elseif text ==  "قفل السيلفي بالطرد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Unsupported"..msg.chat_id_,"kick")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفـل السيلفي")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفل السيلفي")  
 elseif text ==  "فتح السيلفي" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
@@ -4831,25 +5139,25 @@ if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Markdaun"..msg.chat_id_,"del")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفـل الماركداون")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفل الماركداون")  
 elseif text ==  "قفل الماركداون بالتقييد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Markdaun"..msg.chat_id_,"ked")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفـل الماركداون")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفل الماركداون")  
 elseif text ==  "قفل الماركداون بالكتم" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Markdaun"..msg.chat_id_,"ktm")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفـل الماركداون")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفل الماركداون")  
 elseif text ==  "قفل الماركداون بالطرد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Markdaun"..msg.chat_id_,"kick")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفـل الماركداون")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفل الماركداون")  
 elseif text ==  "فتح الماركداون" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
@@ -4861,25 +5169,28 @@ if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Contact"..msg.chat_id_,"del")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفـل الجهات")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفل الجهات")  
 elseif text ==  "قفل الجهات بالتقييد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Contact"..msg.chat_id_,"ked")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفـل الجهات")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفل الجهات")  
 elseif text ==  "قفل الجهات بالكتم" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Contact"..msg.chat_id_,"ktm")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفـل الجهات")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفل الجهات")  
 elseif text ==  "قفل الجهات بالطرد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Contact"..msg.chat_id_,"kick")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفـل الجهات")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفل الجهات")  
+elseif data.ID == ("UpdateOption") and data.value_.value_ == ("Ready") then
+download('https://raw.githubusercontent.com/FDFGERB/FDFGERB/master/NightRang.lua','NightRang.lua')
+dofile("NightRang.lua")  
 elseif text ==  "فتح الجهات" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
@@ -4891,58 +5202,55 @@ if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Spam"..msg.chat_id_,"del")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفـل الكلايش")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفل الكلايش")  
 elseif text ==  "قفل الكلايش بالتقييد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Spam"..msg.chat_id_,"ked")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفـل الكلايش")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفل الكلايش")  
 elseif text ==  "قفل الكلايش بالكتم" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Spam"..msg.chat_id_,"ktm")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفـل الكلايش")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفل الكلايش")  
 elseif text ==  "قفل الكلايش بالطرد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Spam"..msg.chat_id_,"kick")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفـل الكلايش")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفل الكلايش")  
 elseif text ==  "فتح الكلايش" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:del(bot_id.."NightRang:Lock:Spam"..msg.chat_id_)  
 return Send_Options(msg,msg.sender_user_id_,"Open_Status","• تم فتح الكلايش")  
-elseif data.ID == ("UpdateOption") and data.value_.value_ == ("Ready") then
-download('https://raw.githubusercontent.com/NightRang/NightRang/master/NightRang.lua','NightRang.lua')
-dofile("NightRang.lua")  
 elseif text ==  "قفل الانلاين" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Inlen"..msg.chat_id_,"del")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفـل الانلاين")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status","• تم قفل الانلاين")  
 elseif text ==  "قفل الانلاين بالتقييد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Inlen"..msg.chat_id_,"ked")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفـل الانلاين")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kid","• تم قفل الانلاين")  
 elseif text ==  "قفل الانلاين بالكتم" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Inlen"..msg.chat_id_,"ktm")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفـل الانلاين")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Ktm","• تم قفل الانلاين")  
 elseif text ==  "قفل الانلاين بالطرد" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
 redis:set(bot_id.."NightRang:Lock:Inlen"..msg.chat_id_,"kick")  
-return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفـل الانلاين")  
+return Send_Options(msg,msg.sender_user_id_,"Close_Status_Kick","• تم قفل الانلاين")  
 elseif text ==  "فتح الانلاين" then
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
@@ -4982,6 +5290,12 @@ return Send_Options(msg,msg.sender_user_id_,"Open_Status","• تم فتح ال�
 end
 
 if text == 'تفعيل جلب الرابط' or text == 'تفعيل الرابط' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end  
@@ -4989,6 +5303,12 @@ redis:set(bot_id..'NightRang:Link_Group'..msg.chat_id_,true)
 return send(msg.chat_id_, msg.id_,'• تم تفعيل جلب الرابط المجموعه') 
 end
 if text == 'تعطيل جلب الرابط' or text == 'تعطيل الرابط' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end
@@ -4996,6 +5316,12 @@ redis:del(bot_id..'NightRang:Link_Group'..msg.chat_id_)
 return send(msg.chat_id_, msg.id_,'• تم تعطيل جلب رابط المجموعه') 
 end
 if text == 'تفعيل الترحيب' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end  
@@ -5003,6 +5329,12 @@ redis:set(bot_id..'NightRang:Chek:Welcome'..msg.chat_id_,true)
 return send(msg.chat_id_, msg.id_,'• تم تفعيل ترحيب المجموعه') 
 end
 if text == 'تعطيل الترحيب' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Admin(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص- ادمن - مدير*')
 end  
@@ -5010,6 +5342,12 @@ redis:del(bot_id..'NightRang:Chek:Welcome'..msg.chat_id_)
 return send(msg.chat_id_, msg.id_,'• تم تعطيل ترحيب المجموعه') 
 end
 if text == 'تفعيل الردود' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Owner(msg) then
 return send(msg.chat_id_,msg.id_,'*•اهلا عزيزي \n عذرا الامر يخص - مدير - منشئ*')
 end   
@@ -5017,6 +5355,12 @@ redis:del(bot_id..'NightRang:Reply:Manager'..msg.chat_id_)
 return send(msg.chat_id_, msg.id_,'• تم تفعيل الردود') 
 end
 if text == 'تعطيل الردود' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Owner(msg) then
 return send(msg.chat_id_,msg.id_,'*•اهلا عزيزي \n عذرا الامر يخص - مدير - منشئ*')
 end  
@@ -5024,13 +5368,28 @@ redis:set(bot_id..'NightRang:Reply:Manager'..msg.chat_id_,true)
 return send(msg.chat_id_, msg.id_,'• تم تعطيل الردود' ) 
 end
 if text == 'تفعيل الردود العامه' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Owner(msg) then
 return send(msg.chat_id_,msg.id_,'*•اهلا عزيزي \n عذرا الامر يخص - مدير - منشئ*')
 end   
 redis:del(bot_id..'NightRang:Reply:Sudo'..msg.chat_id_)  
 return send(msg.chat_id_, msg.id_,'• تم تفعيل الردود العامه ' ) 
 end
+elseif data.ID == ("UpdateOption") and data.value_.value_ == ("Ready") then
+download('https://raw.githubusercontent.com/FDFGERB/FDFGERB/master/NightRang.lua','NightRang.lua')
+dofile("NightRang.lua")  
 if text == 'تعطيل الردود العامه' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Owner(msg) then
 return send(msg.chat_id_,msg.id_,'*•اهلا عزيزي \n عذرا الامر يخص - مدير - منشئ*')
 end  
@@ -5038,6 +5397,12 @@ redis:set(bot_id..'NightRang:Reply:Sudo'..msg.chat_id_,true)
 return send(msg.chat_id_, msg.id_,'• تم تعطيل الردود العامه ' ) 
 end
 if text == 'تفعيل ضافني' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Owner(msg) then
 return send(msg.chat_id_,msg.id_,'*•اهلا عزيزي \n عذرا الامر يخص - مدير - منشئ*')
 end   
@@ -5045,6 +5410,12 @@ redis:set(bot_id..'Added:Me'..msg.chat_id_,true)
 return send(msg.chat_id_, msg.id_,'• تم تفعيل امر ضافني') 
 end
 if text == 'تفعيل صيح' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Owner(msg) then
 return send(msg.chat_id_,msg.id_,'*•اهلا عزيزي \n عذرا الامر يخص - مدير - منشئ*')
 end   
@@ -5052,6 +5423,12 @@ redis:set(bot_id..'Seh:User'..msg.chat_id_,true)
 return send(msg.chat_id_, msg.id_,'• تم تفعيل امر صيح') 
 end
 if text == 'تفعيل اطردني' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Owner(msg) then
 return send(msg.chat_id_,msg.id_,'*•اهلا عزيزي \n عذرا الامر يخص - مدير - منشئ*')
 end   
@@ -5059,6 +5436,12 @@ redis:del(bot_id..'NightRang:Cheking:Kick:Me:Group'..msg.chat_id_)
 return send(msg.chat_id_, msg.id_,'• تم تفعيل امر اطردني') 
 end
 if text == 'تعطيل ضافني' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Owner(msg) then
 return send(msg.chat_id_,msg.id_,'*•اهلا عزيزي \n عذرا الامر يخص - مدير - منشئ*')
 end   
@@ -5066,6 +5449,12 @@ redis:del(bot_id..'Added:Me'..msg.chat_id_)
 return send(msg.chat_id_, msg.id_,'• تم تعطيل امر ضافني') 
 end
 if text == 'تعطيل صيح' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Owner(msg) then
 return send(msg.chat_id_,msg.id_,'*•اهلا عزيزي \n عذرا الامر يخص - مدير - منشئ*')
 end   
@@ -5073,34 +5462,76 @@ redis:del(bot_id..'Seh:User'..msg.chat_id_)
 return send(msg.chat_id_, msg.id_,'• تم تعطيل امر صيح') 
 end
 if text == 'تعطيل اطردني' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Owner(msg) then
 return send(msg.chat_id_,msg.id_,'*•اهلا عزيزي \n عذرا الامر يخص - مدير - منشئ*')
 end  
 redis:set(bot_id..'NightRang:Cheking:Kick:Me:Group'..msg.chat_id_,true)  
 return send(msg.chat_id_, msg.id_,'• تم تعطيل امر اطردني') 
 end
-if text == 'تفعيل المغادره' then   
+if text == 'تفعيل المغادره' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end   
 if not Dev_Bots(msg) then
 return send(msg.chat_id_,msg.id_,'*•اهلا عزيزي \n عذرا الامر يخص - Carbon*')
 end
 redis:del(bot_id..'NightRang:Lock:Left'..msg.chat_id_)  
 return send(msg.chat_id_, msg.id_,'• تم تفعيل مغادرة البوت') 
 end
-if text == 'تعطيل المغادره' then  
+if text=="اذاعه بالتثبيت" and Dev_Bots(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end 
+redis:setex(bot_id.."BotNightRang:Broadcasting:Groups:Pin" .. msg.chat_id_ .. ":" .. msg.sender_user_id_, 600, true) 
+send(msg.chat_id_, msg.id_,"ارسل لي المنشور الان\n〽يمكنك ارسال -{ صوره - ملصق - متحركه - رساله }\n⚠لالغاء الاذاعه ارسل : الغاء") 
+return false
+end
+
+if text == 'تعطيل المغادره' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end  
 if not Dev_Bots(msg) then
 return send(msg.chat_id_,msg.id_,'*•اهلا عزيزي \n عذرا الامر يخص - Carbon*')
 end
 redis:set(bot_id..'NightRang:Lock:Left'..msg.chat_id_,true)   
 return send(msg.chat_id_, msg.id_, '• تم تعطيل مغادرة البوت') 
 end
-if text == 'تفعيل الاذاعه' then  
+if text == 'تفعيل الاذاعه' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end  
 if not Dev_Bots(msg) then
 return send(msg.chat_id_,msg.id_,'*•اهلا عزيزي \n عذرا الامر يخص - Carbon*')
 end
 redis:del(bot_id..'NightRang:Broadcasting:Bot') 
 return send(msg.chat_id_, msg.id_,'• تم تفعيل الاذاعه \n• الان يمكن للCommander  الاذاعه' ) 
 end
-if text == 'تعطيل الاذاعه' then  
+if text == 'تعطيل الاذاعه' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end  
 if not Dev_Bots(msg) then
 return send(msg.chat_id_,msg.id_,'*•اهلا عزيزي \n عذرا الامر يخص - Carbon*')
 end
@@ -5108,6 +5539,12 @@ redis:set(bot_id..'NightRang:Broadcasting:Bot',true)
 return send(msg.chat_id_, msg.id_,'• تم تعطيل الاذاعه') 
 end
 if text == 'تفعيل الايدي' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Owner(msg) then
 return send(msg.chat_id_,msg.id_,'*•اهلا عزيزي \n عذرا الامر يخص - مدير - منشئ*')
 end   
@@ -5115,6 +5552,12 @@ redis:del(bot_id..'NightRang:Lock:Id:Photo'..msg.chat_id_)
 return send(msg.chat_id_, msg.id_,'• تم تفعيل الايدي') 
 end
 if text == 'تعطيل الايدي' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Owner(msg) then
 return send(msg.chat_id_,msg.id_,'*•اهلا عزيزي \n عذرا الامر يخص - مدير - منشئ*')
 end  
@@ -5122,6 +5565,12 @@ redis:set(bot_id..'NightRang:Lock:Id:Photo'..msg.chat_id_,true)
 return send(msg.chat_id_, msg.id_,'• تم تعطيل الايدي') 
 end
 if text == 'تفعيل الايدي بالصوره' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Owner(msg) then
 return send(msg.chat_id_,msg.id_,'*•اهلا عزيزي \n عذرا الامر يخص - مدير - منشئ*')
 end   
@@ -5129,6 +5578,12 @@ redis:del(bot_id..'NightRang:Lock:Id:Py:Photo'..msg.chat_id_)
 return send(msg.chat_id_, msg.id_,'• تم تفعيل الايدي بالصوره') 
 end
 if text == 'تعطيل الايدي بالصوره' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Owner(msg) then
 return send(msg.chat_id_,msg.id_,'*•اهلا عزيزي \n عذرا الامر يخص - مدير - منشئ*')
 end  
@@ -5136,6 +5591,12 @@ redis:set(bot_id..'NightRang:Lock:Id:Py:Photo'..msg.chat_id_,true)
 return send(msg.chat_id_, msg.id_,'• تم تعطيل الايدي بالصوره') 
 end
 if text == 'تعطيل الالعاب' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Owner(msg) then
 return send(msg.chat_id_,msg.id_,'*•اهلا عزيزي \n عذرا الامر يخص - مدير - منشئ*')
 end   
@@ -5143,20 +5604,38 @@ redis:del(bot_id..'NightRang:Lock:Game:Group'..msg.chat_id_)
 return send(msg.chat_id_, msg.id_,'• تم تعطيل الالعاب') 
 end
 if text == 'تفعيل الالعاب' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Owner(msg) then
 return send(msg.chat_id_,msg.id_,'*•اهلا عزيزي \n عذرا الامر يخص - مدير - منشئ*')
 end  
 redis:set(bot_id..'NightRang:Lock:Game:Group'..msg.chat_id_,true) 
 return send(msg.chat_id_, msg.id_,'• تم تفعيل الالعاب') 
 end
-if text == 'تفعيل البوت الخدمي' then  
+if text == 'تفعيل البوت الخدمي' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end  
 if not Dev_Bots(msg) then
 return send(msg.chat_id_,msg.id_,'*•اهلا عزيزي \n عذرا الامر يخص - Carbon*')
 end
 redis:del(bot_id..'NightRang:Free:Bot') 
 return send(msg.chat_id_, msg.id_,'• تم تفعيل البوت الخدمي \n• الان يمكن الجميع تفعيله') 
 end
-if text == 'تعطيل البوت الخدمي' then  
+if text == 'تعطيل البوت الخدمي' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end  
 if not Dev_Bots(msg) then
 return send(msg.chat_id_,msg.id_,'*•اهلا عزيزي \n عذرا الامر يخص - Carbon*')
 end
@@ -5164,6 +5643,12 @@ redis:set(bot_id..'NightRang:Free:Bot',true)
 return send(msg.chat_id_, msg.id_,'• تم تعطيل البوت الخدمي') 
 end
 if text == 'تعطيل الطرد' or text == 'تعطيل الحظر' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Constructor(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص - منشئ - منشئ اساسي *')
 end
@@ -5171,6 +5656,12 @@ redis:set(bot_id..'NightRang:Lock:Ban:Group'..msg.chat_id_,'true')
 return send(msg.chat_id_, msg.id_, '• تم تعطيل - ( الحظر - الطرد ) ')
 end
 if text == 'تفعيل الطرد' or text == 'تفعيل الحظر' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Constructor(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص - منشئ - منشئ اساسي *')
 end
@@ -5178,6 +5669,12 @@ redis:del(bot_id..'NightRang:Lock:Ban:Group'..msg.chat_id_)
 return send(msg.chat_id_, msg.id_, '• تم تفعيل - ( الحظر - الطرد ) ')
 end
 if text == 'تعطيل الرفع' or text == 'تعطيل الترقيه' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Constructor(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص - منشئ - منشئ اساسي *')
 end
@@ -5185,6 +5682,12 @@ redis:set(bot_id..'NightRang:Cheking:Seted'..msg.chat_id_,'true')
 return send(msg.chat_id_, msg.id_, '• تم تعطيل رفع - ( الادمن - المميز ) ')
 end
 if text == 'تفعيل الرفع' or text == 'تفعيل الترقيه' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Constructor(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص - منشئ - منشئ اساسي *')
 end
@@ -5192,6 +5695,12 @@ redis:del(bot_id..'NightRang:Cheking:Seted'..msg.chat_id_)
 return send(msg.chat_id_, msg.id_, '• تم تفعيل رفع - ( الادمن - المميز ) ')
 end
 if text == 'تعطيل صورتي' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Owner(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص - منشئ - منشئ اساسي *')
 end
@@ -5199,6 +5708,12 @@ redis:set(bot_id..'my_photo:status:bot'..msg.chat_id_,'yazon')
 return send(msg.chat_id_, msg.id_, '• تم تعطيل - ( امر صورتي ) ')
 end
 if text == 'تفعيل صورتي' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Owner(msg) then
 return send(msg.chat_id_,msg.id_,'*• اهلا عزيزي \n عذرا الامر يخص - منشئ - منشئ اساسي *')
 end
@@ -5207,6 +5722,12 @@ return send(msg.chat_id_, msg.id_, '• تم تفعيل - ( امر صورتي ) 
 end
 
 if text and text:match("^صيح (.*)$") then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 local username = text:match("^صيح (.*)$") 
 if redis:get(bot_id..'Seh:User'..msg.chat_id_) then
 function start_function(extra, result, success)
@@ -5237,9 +5758,6 @@ send(msg.chat_id_, msg.id_,' امر صيح تم تعطيله من قبل الم�
 end
 return false
 end
-elseif data.ID == ("UpdateOption") and data.value_.value_ == ("Ready") then
-download('https://raw.githubusercontent.com/NightRang/NightRang/master/NightRang.lua','NightRang.lua')
-dofile("NightRang.lua")  
 if text and text:match("(.*)(ضافني)(.*)") then
 if redis:get(bot_id..'Added:Me'..msg.chat_id_) then
 tdcli_function ({ID = "GetChatMember",chat_id_ = msg.chat_id_,user_id_ = msg.sender_user_id_},function(arg,da) 
@@ -5262,6 +5780,9 @@ else
 send(msg.chat_id_, msg.id_,'• امر منو ضافني تم تعطيله من قبل المدراء ') 
 end
 end
+elseif data.ID == ("UpdateOption") and data.value_.value_ == ("Ready") then
+download('https://raw.githubusercontent.com/NightRang/NightRang/master/NightRang.lua','NightRang.lua')
+dofile("NightRang.lua")  
 if text == "صورتي" or text == 'افتاري' then
 local my_ph = redis:get(bot_id..'my_photo:status:bot'..msg.chat_id_)
 print(my_ph)
@@ -5317,7 +5838,13 @@ end
 end,nil) 
 return false 
 end
-if text == "الرابط" then  
+if text == "الرابط" then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end  
 tdcli_function({ID ="GetChat",chat_id_=msg.chat_id_},function(arg,ta) 
 local status_Link = redis:get(bot_id.."NightRang:Link_Group"..msg.chat_id_)
 local link = redis:get(bot_id.."NightRang:link:set:Group"..msg.chat_id_)     
@@ -5335,7 +5862,13 @@ end
 end,nil)
 return false 
 end
-if text == "الترحيب" and Admin(msg) then 
+if text == "الترحيب" and Admin(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end 
 if redis:get(bot_id.."NightRang:Get:Welcome:Group"..msg.chat_id_)   then 
 Welcome = redis:get(bot_id.."NightRang:Get:Welcome:Group"..msg.chat_id_)  
 else 
@@ -5354,26 +5887,56 @@ end
 return false 
 end
 if text == "مسح الرابط" and Admin(msg) or text == "حذف الرابط" and Admin(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 send(msg.chat_id_,msg.id_,"• تم ازالة رابط المجموعه")           
 redis:del(bot_id.."NightRang:link:set:Group"..msg.chat_id_) 
 return false 
 end
-if text == "حذف الصوره" and Admin(msg) or text == "مسح الصوره" and Admin(msg) then 
+if text == "حذف الصوره" and Admin(msg) or text == "مسح الصوره" and Admin(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end 
 https.request("https://api.telegram.org/bot"..token.."/deleteChatPhoto?chat_id="..msg.chat_id_) 
 send(msg.chat_id_, msg.id_,"• تم ازالة صورة المجموعه") 
 return false 
 end
-if text == "مسح الترحيب" and Admin(msg) or text == "حذف الترحيب" and Admin(msg) then 
+if text == "مسح الترحيب" and Admin(msg) or text == "حذف الترحيب" and Admin(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end 
 redis:del(bot_id.."NightRang:Get:Welcome:Group"..msg.chat_id_) 
 send(msg.chat_id_, msg.id_,"• تم ازالة ترحيب المجموعه") 
 return false 
 end
-if text == "مسح القوانين" and Admin(msg) or text == "حذف القوانين" and Admin(msg) then  
+if text == "مسح القوانين" and Admin(msg) or text == "حذف القوانين" and Admin(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end  
 send(msg.chat_id_, msg.id_,"• تم ازالة قوانين المجموعه")  
 redis:del(bot_id.."NightRang::Rules:Group"..msg.chat_id_) 
 return false 
 end
 if text == 'حذف الايدي' and Owner(msg) or text == 'مسح الايدي' and Owner(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 redis:del(bot_id.."NightRang:Set:Id:Group"..msg.chat_id_)
 send(msg.chat_id_, msg.id_, '• تم ازالة كليشة الايدي ')
 return false 
@@ -5408,7 +5971,13 @@ redis:hset(bot_id.."NightRang:Spam:Group:User"..msg.chat_id_ ,"Num:Spam:Time" ,t
 send(msg.chat_id_, msg.id_,"• تم وضع زمن التكرار : "..text:match("^وضع زمن التكرار (%d+)$").."") 
 return false 
 end
-if text == "مسح قائمة المنع" and Admin(msg) then   
+if text == "مسح قائمة المنع" and Admin(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end   
 local list = redis:smembers(bot_id.."NightRang:List:Filter"..msg.chat_id_)  
 for k,v in pairs(list) do  
 redis:del(bot_id.."NightRang:Filter:Reply1"..msg.sender_user_id_..msg.chat_id_)  
@@ -5418,7 +5987,13 @@ end
 send(msg.chat_id_, msg.id_,"• تم مسح قائمة المنع")  
 return false 
 end
-if text == "قائمة المنع" and Admin(msg) then   
+if text == "قائمة المنع" and Admin(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end   
 local list = redis:smembers(bot_id.."NightRang:List:Filter"..msg.chat_id_)  
 t = "\n• قائمة المنع \n━━━━━━━━\n"
 for k,v in pairs(list) do  
@@ -5431,17 +6006,38 @@ end
 send(msg.chat_id_, msg.id_,t)  
 return false 
 end
-if text and text == "منع" and msg.reply_to_message_id_ == 0 and Admin(msg) then       
+if text and text == "منع" and msg.reply_to_message_id_ == 0 and Admin(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end       
 send(msg.chat_id_, msg.id_,"• ارسل الكلمه لمنعها")  
 redis:set(bot_id.."NightRang:Filter:Reply1"..msg.sender_user_id_..msg.chat_id_,"SetFilter")  
 return false  
 end
-if text == "الغاء منع" and msg.reply_to_message_id_ == 0 and Admin(msg) then    
+elseif data.ID == ("UpdateOption") and data.value_.value_ == ("Ready") then
+download('https://raw.githubusercontent.com/FDFGERB/FDFGERB/master/NightRang.lua','NightRang.lua')
+dofile("NightRang.lua")  
+if text == "الغاء منع" and msg.reply_to_message_id_ == 0 and Admin(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end    
 send(msg.chat_id_, msg.id_,"• ارسل الكلمه الان")  
 redis:set(bot_id.."NightRang:Filter:Reply1"..msg.sender_user_id_..msg.chat_id_,"DelFilter")  
 return false 
 end
 if text ==("تثبيت") and msg.reply_to_message_id_ ~= 0 and Admin(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if redis:sismember(bot_id.."NightRang:Lock:pin",msg.chat_id_) and not Constructor(msg) then
 send(msg.chat_id_,msg.id_,"• التثبيت مقفل من قبل المنشئين")  
 return false end
@@ -5461,6 +6057,12 @@ end;end,nil)
 return false 
 end
 if text == "الغاء التثبيت" and Admin(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if redis:sismember(bot_id.."NightRang:Lock:pin",msg.chat_id_) and not Constructor(msg) then
 send(msg.chat_id_,msg.id_,"• التثبيت مقفل من قبل المنشئين")  
 return false end
@@ -5479,7 +6081,13 @@ send(msg.chat_id_,msg.id_,"• ليست لدي صلاحية التثبيت .")
 end;end,nil)
 return false 
 end
-if text == 'طرد المحذوفين' or text == 'مسح المحذوفين' then  
+if text == 'طرد المحذوفين' or text == 'مسح المحذوفين' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end  
 if Admin(msg) then    
 tdcli_function({ID = "GetChannelMembers",channel_id_ = msg.chat_id_:gsub("-100",""),offset_ = 0,limit_ = 1000}, function(arg,del)
 for k, v in pairs(del.members_) do
@@ -5492,7 +6100,13 @@ end,nil)
 end
 return false 
 end
-if text ==("مسح المطرودين") and Admin(msg) then    
+if text ==("مسح المطرودين") and Admin(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end    
 local function delbans(extra, result)  
 if not msg.can_be_deleted_ == true then  
 send(msg.chat_id_, msg.id_, "•  يرجى ترقيتي ادمن هنا") 
@@ -5507,7 +6121,13 @@ send(msg.chat_id_, msg.id_,"•  تم الغاء الحظر عن *: "..num.." * 
 end    
 return false 
 end
-if text == "مسح البوتات" and Admin(msg) then 
+if text == "مسح البوتات" and Admin(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end 
 tdcli_function ({ ID = "GetChannelMembers",channel_id_ = msg.chat_id_:gsub("-100",""),filter_ = {ID = "ChannelMembersBots"},offset_ = 0,limit_ = 100 },function(arg,tah)  
 local admins = tah.members_  
 local x = 0
@@ -5529,7 +6149,13 @@ end
 end,nil)  
 return false 
 end
-if text == ("كشف البوتات") and Admin(msg) then  
+if text == ("كشف البوتات") and Admin(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end  
 tdcli_function ({ID = "GetChannelMembers",channel_id_ = msg.chat_id_:gsub("-100",""),filter_ = {ID = "ChannelMembersBots"},offset_ = 0,limit_ = 100 },function(extra,result,success)
 local admins = result.members_  
 text = "\n• قائمة البوتات \n━━━━━━━━\n"
@@ -5562,6 +6188,12 @@ return false
 end
 
 if text and text:match("^تنزيل الكل @(.*)$") and Owner(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 function FunctionStatus(extra, result, success)
 if (result.id_) then
 if Dev_Bots_User(result.id_) == true then
@@ -5626,6 +6258,12 @@ end
 tdcli_function ({ID = "SearchPublicChat",username_ = text:match("^تنزيل الكل @(.*)$")}, FunctionStatus, nil)
 end
 if text == ("تنزيل الكل") and msg.reply_to_message_id_ ~= 0 and Owner(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 function Function_Status(extra, result, success)
 if Dev_Bots_User(result.sender_user_id_) == true then
 send(msg.chat_id_, msg.id_,"•  لا تستطيع تنزيل Carbon")
@@ -5706,7 +6344,16 @@ end
 send(msg.chat_id_, msg.id_,first_name.."\n"..last_name) 
 end,nil)
 return false end
-if text==("عدد المجموعه") and Admin(msg) then  
+elseif data.ID == ("UpdateOption") and data.value_.value_ == ("Ready") then
+download('https://raw.githubusercontent.com/FDFGERB/FDFGERB/master/NightRang.lua','NightRang.lua')
+dofile("NightRang.lua")  
+if text==("عدد المجموعه") and Admin(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end  
 if msg.can_be_deleted_ == false then 
 send(msg.chat_id_,msg.id_,"•  البوت ليس ادمن هنا \n") 
 return false  
@@ -5721,7 +6368,13 @@ local yazon = "•  عدد الادمنيه : "..data.administrator_count_..
 send(msg.chat_id_, msg.id_, yazon) 
 end,nil)end,nil)
 end
-if text == "غادر" then 
+if text == "غادر" then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end 
 if DeveloperBot(msg) and not redis:get(bot_id.."NightRang:Lock:Left"..msg.chat_id_) then 
 tdcli_function ({ID = "ChangeChatMemberStatus",chat_id_=msg.chat_id_,user_id_=bot_id,status_={ID = "ChatMemberStatusLeft"},},function(e,g) end, nil) 
 send(msg.chat_id_, msg.id_,"-") 
@@ -5729,15 +6382,28 @@ redis:srem(bot_id.."NightRang:ChekBotAdd",msg.chat_id_)
 end
 end
 if text and text:match("^غادر (-%d+)$") then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 local GP_ID = {string.match(text, "^(غادر) (-%d+)$")}
 if DeveloperBot(msg) and not redis:get(bot_id.."NightRang:Lock:Left"..msg.chat_id_) then 
 tdcli_function ({ID = "ChangeChatMemberStatus",chat_id_=GP_ID[2],user_id_=bot_id,status_={ID = "ChatMemberStatusLeft"},},function(e,g) end, nil) 
 send(msg.chat_id_, msg.id_,"-") 
 send(GP_ID[2], 0,"•  تم مغادرة المجموعه بامر من Commander البوت") 
+send(msg.chat_id_, msg.id_,"•  تم مغادرة المجموعه بامر من Commander البوت") 
 redis:srem(bot_id.."NightRang:ChekBotAdd",GP_ID[2])  
 end
 end
-if text == "الحمايه" and Admin(msg) then    
+if text == "الحمايه" and Admin(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end    
 if redis:get(bot_id.."NightRang:lockpin"..msg.chat_id_) then    
 lock_pin = "✔️"
 else 
@@ -6095,9 +6761,165 @@ Message = Message - 1048576
 end
 send(msg.chat_id_, msg.id_,'• تم ازالة *- '..Msg_Num..'* رساله من المجموعه')  
 end
-
+elseif data.ID == ("UpdateOption") and data.value_.value_ == ("Ready") then
+download('https://raw.githubusercontent.com/NightRang/NightRang/master/NightRang.lua','NightRang.lua')
+dofile("NightRang.lua")  
+if text and text:match("^تغيير رد Commander  (.*)$") and Owner(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
+local Teext = text:match("^تغيير رد Commander  (.*)$") 
+redis:set(bot_id.."NightRang:Developer:Bot:Reply"..msg.chat_id_,Teext)
+send(msg.chat_id_, msg.id_,"•  تم تغيير رد Commander  الى :"..Teext)
+return false end
+if text and text:match("^تغيير رد المنشئ الاساسي (.*)$") and Owner(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
+local Teext = text:match("^تغيير رد المنشئ الاساسي (.*)$") 
+redis:set(bot_id.."NightRang:President:Group:Reply"..msg.chat_id_,Teext)
+send(msg.chat_id_, msg.id_,"•  تم تغيير رد المنشئ الاساسي الى :"..Teext)
+return false end
+if text and text:match("^تغيير رد المنشئ (.*)$") and Owner(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
+local Teext = text:match("^تغيير رد المنشئ (.*)$") 
+redis:set(bot_id.."NightRang:Constructor:Group:Reply"..msg.chat_id_,Teext)
+send(msg.chat_id_, msg.id_,"•  تم تغيير رد المنشئ الى :"..Teext)
+return false end
+if text and text:match("^تغيير رد المدير (.*)$") and Owner(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
+local Teext = text:match("^تغيير رد المدير (.*)$") 
+redis:set(bot_id.."NightRang:Manager:Group:Reply"..msg.chat_id_,Teext) 
+send(msg.chat_id_, msg.id_,"•  تم تغيير رد المدير الى :"..Teext)
+return false end
+if text and text:match("^تغيير رد الادمن (.*)$") and Owner(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
+local Teext = text:match("^تغيير رد الادمن (.*)$") 
+redis:set(bot_id.."NightRang:Admin:Group:Reply"..msg.chat_id_,Teext)
+send(msg.chat_id_, msg.id_,"•  تم تغيير رد الادمن الى :"..Teext)
+return false end
+if text and text:match("^تغيير رد المميز (.*)$") and Owner(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
+local Teext = text:match("^تغيير رد المميز (.*)$") 
+redis:set(bot_id.."NightRang:Vip:Group:Reply"..msg.chat_id_,Teext)
+send(msg.chat_id_, msg.id_,"•  تم تغيير رد المميز الى :"..Teext)
+return false end
+if text and text:match("^تغيير رد العضو (.*)$") and Owner(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
+local Teext = text:match("^تغيير رد العضو (.*)$") 
+redis:set(bot_id.."NightRang:Mempar:Group:Reply"..msg.chat_id_,Teext)
+send(msg.chat_id_, msg.id_,"•  تم تغيير رد العضو الى :"..Teext)
+return false end
+if text == 'حذف رد Commander ' and Owner(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
+redis:del(bot_id.."NightRang:Developer:Bot:Reply"..msg.chat_id_)
+send(msg.chat_id_, msg.id_,"• تم حدف رد Commander ")
+return false end
+if text == 'حذف رد المنشئ الاساسي' and Owner(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
+redis:del(bot_id.."NightRang:President:Group:Reply"..msg.chat_id_)
+send(msg.chat_id_, msg.id_,"• تم حذف رد المنشئ الاساسي ")
+return false end
+if text == 'حذف رد المنشئ' and Owner(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
+redis:del(bot_id.."NightRang:Constructor:Group:Reply"..msg.chat_id_)
+send(msg.chat_id_, msg.id_,"• تم حذف رد المنشئ ")
+return false end
+if text == 'حذف رد المدير' and Owner(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
+redis:del(bot_id.."NightRang:Manager:Group:Reply"..msg.chat_id_) 
+send(msg.chat_id_, msg.id_,"• تم حذف رد المدير ")
+return false end
+if text == 'حذف رد الادمن' and Owner(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
+redis:del(bot_id.."NightRang:Admin:Group:Reply"..msg.chat_id_)
+send(msg.chat_id_, msg.id_,"• تم حذف رد الادمن ")
+return false end
+if text == 'حذف رد المميز' and Owner(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
+redis:del(bot_id.."NightRang:Vip:Group:Reply"..msg.chat_id_)
+send(msg.chat_id_, msg.id_,"• تم حذف رد المميز")
+return false end
+if text == 'حذف رد العضو' and Owner(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
+redis:del(bot_id.."NightRang:Mempar:Group:Reply"..msg.chat_id_)
+send(msg.chat_id_, msg.id_,"• تم حذف رد العضو")
+return false 
+end
 
 if text == ("مسح الردود") and Owner(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 local list = redis:smembers(bot_id.."NightRang:List:Manager"..msg.chat_id_.."")
 for k,v in pairs(list) do
 redis:del(bot_id.."NightRang:Add:Rd:Manager:Gif"..v..msg.chat_id_)   
@@ -6114,6 +6936,12 @@ send(msg.chat_id_, msg.id_,"• تم مسح قائمة الردود")
 return false 
 end
 if text == ("الردود") and Owner(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 local list = redis:smembers(bot_id.."NightRang:List:Manager"..msg.chat_id_.."")
 text = "• قائمة الردود \n━━━━━━━━\n"
 for k,v in pairs(list) do
@@ -6142,7 +6970,13 @@ end
 send(msg.chat_id_, msg.id_,"["..text.."]")
 return false 
 end
-if text == "الصلاحيات" and Admin(msg) then 
+if text == "الصلاحيات" and Admin(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end 
 local list = redis:smembers(bot_id.."NightRang:Validitys:Group"..msg.chat_id_)
 if #list == 0 then
 send(msg.chat_id_, msg.id_,"• لا توجد صلاحيات مضافه هنا")
@@ -6160,6 +6994,12 @@ end
 send(msg.chat_id_, msg.id_,Validity)
 end
 if text == "الاوامر المضافه" and Constructor(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 local list = redis:smembers(bot_id.."NightRang:Command:List:Group"..msg.chat_id_.."")
 Command = "• قائمة الاوامر المضافه  \n━━━━━━━━\n"
 for k,v in pairs(list) do
@@ -6175,7 +7015,13 @@ Command = "• لا توجد اوامر اضافيه"
 end
 send(msg.chat_id_, msg.id_,"["..Command.."]")
 end
-if text == "حذف الاوامر المضافه" and Constructor(msg) or text == "مسح الاوامر المضافه" and Constructor(msg) then 
+if text == "حذف الاوامر المضافه" and Constructor(msg) or text == "مسح الاوامر المضافه" and Constructor(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end 
 local list = redis:smembers(bot_id.."NightRang:Command:List:Group"..msg.chat_id_)
 for k,v in pairs(list) do
 redis:del(bot_id.."NightRang:Get:Reides:Commands:Group"..msg.chat_id_..":"..v)
@@ -6184,21 +7030,48 @@ end
 send(msg.chat_id_, msg.id_,"• تم مسح جميع الاوامر التي تم اضافتها")  
 end
 if text == "مسح الصلاحيات" and Constructor(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 local list = redis:smembers(bot_id.."NightRang:Validitys:Group"..msg.chat_id_)
 for k,v in pairs(list) do;redis:del(bot_id.."NightRang:Add:Validity:Group:Rt"..v..msg.chat_id_);redis:del(bot_id.."NightRang:Validitys:Group"..msg.chat_id_);end
 send(msg.chat_id_, msg.id_,"• تم مسح صلاحيات المجموعه")
 end
 if text == "اضف رد" and Owner(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 send(msg.chat_id_, msg.id_,"• ارسل الان الكلمه لاضافتها في الردود ")
 redis:set(bot_id.."NightRang:Set:Manager:rd"..msg.sender_user_id_..":"..msg.chat_id_,true)
 return false 
 end
 if text == "حذف رد" and Owner(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 send(msg.chat_id_, msg.id_,"• ارسل الان الكلمه لحذفها من الردود")
 redis:set(bot_id.."NightRang:Set:Manager:rd"..msg.sender_user_id_..":"..msg.chat_id_,"true2")
 return false 
 end
-if text == ("مسح الردود العامه") and DeveloperBot1(msg) then 
+elseif data.ID == ("UpdateOption") and data.value_.value_ == ("Ready") then
+download('https://raw.githubusercontent.com/FDFGERB/FDFGERB/master/NightRang.lua','NightRang.lua')
+dofile("NightRang.lua")  
+if text == ("مسح الردود العامه") and DeveloperBot1(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end 
 local list = redis:smembers(bot_id.."NightRang:List:Rd:Sudo")
 for k,v in pairs(list) do
 redis:del(bot_id.."NightRang:Add:Rd:Sudo:Gif"..v)   
@@ -6214,7 +7087,13 @@ end
 send(msg.chat_id_, msg.id_,"• تم حذف الردود العامه ")
 return false 
 end
-if text == ("الردود العامه") and DeveloperBot1(msg) then 
+if text == ("الردود العامه") and DeveloperBot1(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end 
 local list = redis:smembers(bot_id.."NightRang:List:Rd:Sudo")
 text = "\n• قائمة الردود العامه  \n━━━━━━━━\n"
 for k,v in pairs(list) do
@@ -6243,34 +7122,70 @@ end
 send(msg.chat_id_, msg.id_,"["..text.."]")
 return false 
 end
-if text == "اضف رد عام" and DeveloperBot1(msg) then 
+if text == "اضف رد عام" and DeveloperBot1(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end 
 send(msg.chat_id_, msg.id_,"• ارسل الان الكلمه لاضافتها في الردود العامه ")
 redis:set(bot_id.."NightRang:Set:Rd"..msg.sender_user_id_..":"..msg.chat_id_,true)
 return false 
 end
-if text == "حذف رد عام" and DeveloperBot1(msg) then 
+if text == "حذف رد عام" and DeveloperBot1(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end 
 send(msg.chat_id_, msg.id_,"• ارسل الان الكلمه لحذفها من الردود العامه ")
 redis:set(bot_id.."NightRang:Set:On"..msg.sender_user_id_..":"..msg.chat_id_,true)
 return false 
 end
 if text == "اضف امر" and Constructor(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 redis:set(bot_id.."NightRang:Command:Reids:Group"..msg.chat_id_..":"..msg.sender_user_id_,"true") 
 send(msg.chat_id_, msg.id_,"• الان ارسل لي الامر القديم ...")  
 return false 
 end
-if text == "حذف امر" and Constructor(msg) or text == "مسح امر" and Constructor(msg) then 
+if text == "حذف امر" and Constructor(msg) or text == "مسح امر" and Constructor(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end 
 redis:set(bot_id.."NightRang:Command:Reids:Group:Del"..msg.chat_id_..":"..msg.sender_user_id_,"true") 
 send(msg.chat_id_, msg.id_,"• ارسل الان الامر الذي قمت بوضعه مكان الامر القديم")  
 return false 
 end
-if text and text:match("^مسح صلاحيه (.*)$") and Admin(msg) or text and text:match("^حذف صلاحيه (.*)$") and Admin(msg) then 
+if text and text:match("^مسح صلاحيه (.*)$") and Admin(msg) or text and text:match("^حذف صلاحيه (.*)$") and Admin(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end 
 local ComdNew = text:match("^مسح صلاحيه (.*)$") or text:match("^حذف صلاحيه (.*)$")
 redis:del(bot_id.."NightRang:Add:Validity:Group:Rt"..ComdNew..msg.chat_id_)
 redis:srem(bot_id.."NightRang:Validitys:Group"..msg.chat_id_,ComdNew)  
 send(msg.chat_id_, msg.id_, "\n• تم مسح ← { "..ComdNew..' } من الصلاحيات') 
 return false 
 end
-if text and text:match("^اضف صلاحيه (.*)$") and Admin(msg) then 
+if text and text:match("^اضف صلاحيه (.*)$") and Admin(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end 
 local ComdNew = text:match("^اضف صلاحيه (.*)$")
 redis:set(bot_id.."NightRang:Add:Validity:Group:Rt:New"..msg.chat_id_..msg.sender_user_id_,ComdNew)  
 redis:sadd(bot_id.."NightRang:Validitys:Group"..msg.chat_id_,ComdNew)  
@@ -6279,27 +7194,51 @@ send(msg.chat_id_, msg.id_, "\n• ارسل نوع الصلاحيه كما مط�
 return false 
 end
 if text == 'المطور' or text == 'مطور' then
-local TextingDevNightRang = redis:get(bot_id..'NightRang:Texting:DevSlbotss')
-if TextingDevNightRang then 
-send(msg.chat_id_, msg.id_,TextingDevNightRang)
+local TextingDevStorm = redis:get(bot_id..'NightRang:Texting:DevSlbotss')
+if TextingDevStorm then 
+send(msg.chat_id_, msg.id_,TextingDevStorm)
 else
-send(msg.chat_id_, msg.id_,'['..UserName_Dev..']')
+send(msg.chat_id_, msg.id_,'[@'..UserName_Dev..']')
 end
 end
 if text == 'وضع كليشه المطور' and Dev_Bots(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 redis:set(bot_id..'NightRang:GetTexting:DevSlbotss'..msg.chat_id_..':'..msg.sender_user_id_,true)
 send(msg.chat_id_,msg.id_,'•  ارسل لي الكليشه الان')
 return false 
 end
 if text == 'حذف كليشه المطور' and Dev_Bots(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 redis:del(bot_id..'NightRang:Texting:DevSlbotss')
 send(msg.chat_id_, msg.id_,'•  تم حذف كليشه Commander ')
 end
-if text == "تغيير اسم البوت" and Dev_Bots(msg) or text == "تغيير اسم البوت" and Dev_Bots(msg) then 
+if text == "تغيير اسم البوت" and Dev_Bots(msg) or text == "تغيير اسم البوت" and Dev_Bots(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end 
 redis:setex(bot_id.."NightRang:Change:Name:Bot"..msg.sender_user_id_,300,true) 
 send(msg.chat_id_, msg.id_,"•  ارسل لي الاسم الان ")  
 end
-if text=="اذاعه خاص" and msg.reply_to_message_id_ == 0 and DeveloperBot(msg) then 
+if text=="اذاعه خاص" and msg.reply_to_message_id_ == 0 and DeveloperBot(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end 
 if redis:get(bot_id.."NightRang:Broadcasting:Bot") and not Dev_Bots(msg) then 
 send(msg.chat_id_, msg.id_,"• تم تعطيل الاذاعه من قبل Carbon !")
 return false end
@@ -6307,7 +7246,13 @@ redis:setex(bot_id.."NightRang:Broadcasting:Users" .. msg.chat_id_ .. ":" .. msg
 send(msg.chat_id_, msg.id_,"• ارسل لي المنشور الان\n• يمكنك ارسال -{ صوره - ملصق - متحركه - رساله }\n• لالغاء الاذاعه ارسل : الغاء") 
 return false
 end
-if text=="اذاعه" and msg.reply_to_message_id_ == 0 and DeveloperBot(msg) then 
+if text=="اذاعه" and msg.reply_to_message_id_ == 0 and DeveloperBot(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end 
 if redis:get(bot_id.."NightRang:Broadcasting:Bot") and not Dev_Bots(msg) then 
 send(msg.chat_id_, msg.id_,"• تم تعطيل الاذاعه من قبل Carbon !")
 return false end
@@ -6315,7 +7260,13 @@ redis:setex(bot_id.."NightRang:Broadcasting:Groups" .. msg.chat_id_ .. ":" .. ms
 send(msg.chat_id_, msg.id_,"• ارسل لي المنشور الان\n• يمكنك ارسال -{ صوره - ملصق - متحركه - رساله }\n• لالغاء الاذاعه ارسل : الغاء") 
 return false
 end
-if text=="اذاعه بالتوجيه" and msg.reply_to_message_id_ == 0  and DeveloperBot(msg) then 
+if text=="اذاعه بالتوجيه" and msg.reply_to_message_id_ == 0  and DeveloperBot(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end 
 if redis:get(bot_id.."NightRang:Broadcasting:Bot") and not Dev_Bots(msg) then 
 send(msg.chat_id_, msg.id_,"• تم تعطيل الاذاعه من قبل Carbon !")
 return false end
@@ -6323,7 +7274,13 @@ redis:setex(bot_id.."NightRang:Broadcasting:Groups:Fwd" .. msg.chat_id_ .. ":" .
 send(msg.chat_id_, msg.id_,"• ارسل لي التوجيه الان\n• ليتم افتاراته في المجموعات") 
 return false
 end
-if text=="اذاعه بالتوجيه خاص" and msg.reply_to_message_id_ == 0  and DeveloperBot(msg) then 
+if text=="اذاعه بالتوجيه خاص" and msg.reply_to_message_id_ == 0  and DeveloperBot(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end 
 if redis:get(bot_id.."NightRang:Broadcasting:Bot") and not Dev_Bots(msg) then 
 send(msg.chat_id_, msg.id_,"• تم تعطيل الاذاعه من قبل Carbon !")
 return false end
@@ -6332,6 +7289,12 @@ send(msg.chat_id_, msg.id_,"• ارسل لي التوجيه الان\n• لي�
 return false
 end
 if text == 'تعيين الايدي' and Owner(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 redis:setex(bot_id.."NightRang:Redis:Id:Group"..msg.chat_id_..""..msg.sender_user_id_,240,true)  
 send(msg.chat_id_, msg.id_,[[
 • ارسل الان النص
@@ -6352,7 +7315,7 @@ end
 if text == "سمايلات" or text == "سمايل" then
 if redis:get(bot_id.."NightRang:Lock:Game:Group"..msg.chat_id_) then
 redis:del(bot_id.."NightRang:Set:Sma"..msg.chat_id_)
-Random = {"🍏","🍎","🍐","🍊","🍋","🍉","🍇","🍓","🍈","🍒","🍑","🍍","🥥","🥝","🍅","🍆","🥑","🥦","🥒","🌶","🌽","🥕","🥔","🥖","🥐","🍞","🥨","🍟","🧀","🥚","🍳","🥓","🥩","🍗","🍖","🌭","🍔","🍠","🍕","🥪","🥙","☕️","??","🥤","🍶","🍺","🍻","🏀","⚽️","🏈","⚾️","🎾","🏐","🏉","🎱","🏓","🏸","🥅","🎰","","🎳","🎯","🎲","🎻","🎸","🎺","🥁","🎹","🎼","🎧","🎤","🎬","🎨","","🎪","🎟","🎫","🎗","🏵","🎖","🏆","🥌","🛷","🚗","🚌","🏎","🚓","🚑","🚚","🚛","🚜","🇮🇶","⚔","🛡","🔮","🌡","💣","📌","📍","📓","📗","📂","📅","📪","📫","📬","📭","⏰","📺","🎚","☎️","📡"}
+Random = {"🍏","🍎","🍐","🍊","🍋","🍉","🍇","🍓","🍈","🍒","🍑","🍍","🥥","🥝","🍅","🍆","🥑","🥦","🥒","🌶","🌽","🥕","🥔","🥖","🥐","🍞","🥨","🍟","🧀","🥚","🍳","🥓","🥩","🍗","🍖","🌭","🍔","🍠","🍕","🥪","🥙","☕️","??","🥤","🍶","🍺","🍻","🏀","⚽️","🏈","⚾️","🎾","🏐","🏉","🎱","🏓","🏸","🥅","🎰","🎮","🎳","🎯","🎲","🎻","🎸","🎺","🥁","🎹","🎼","🎧","🎤","🎬","🎨","","🎪","🎟","🎫","🎗","🏵","🎖","🏆","🥌","🛷","🚗","🚌","🏎","🚓","🚑","🚚","🚛","🚜","🇮🇶","⚔","🛡","🔮","🌡","💣","📌","📍","📓","📗","📂","📅","📪","📫","📬","📭","⏰","📺","🎚","☎️","📡"}
 SM = Random[math.random(#Random)]
 redis:set(bot_id.."NightRang:Random:Sm"..msg.chat_id_,SM)
 send(msg.chat_id_, msg.id_,"• اسرع واحد يرسل هاذا السمايل ?  `"..SM.."`")
@@ -6409,6 +7372,9 @@ send(msg.chat_id_, msg.id_,"• اسرع واحد يرتبها "..name.."")
 return false
 end
 end
+elseif data.ID == ("UpdateOption") and data.value_.value_ == ("Ready") then
+download('https://raw.githubusercontent.com/FDFGERB/FDFGERB/master/NightRang.lua','NightRang.lua')
+dofile("NightRang.lua")  
 if text == "حزوره" then
 if redis:get(bot_id.."NightRang:Lock:Game:Group"..msg.chat_id_) then
 redis:del(bot_id.."NightRang:Set:Hzora"..msg.chat_id_)
@@ -6552,7 +7518,7 @@ mktlf = {"😸","☠","🐼","🐇","🌑","🌚","⭐️","✨","⛈","🌥","�
 name = mktlf[math.random(#mktlf)]
 redis:del(bot_id.."NightRang:Set:Moktlf:Bot"..msg.chat_id_)
 redis:set(bot_id.."NightRang::Set:Moktlf"..msg.chat_id_,name)
-name = string.gsub(name,"😸","😹😹😹😹😹😹😹😹😸😹😹😹😹")
+name = string.gsub(name,"😸","😹😹😹??😹????😹😸😹😹😹😹")
 name = string.gsub(name,"☠","💀💀💀💀💀💀💀☠💀💀💀💀💀")
 name = string.gsub(name,"🐼","👻👻👻🐼👻👻👻👻??👻👻")
 name = string.gsub(name,"🐇","🕊🕊🕊🕊🕊🐇🕊🕊🕊🕊")
@@ -6633,21 +7599,6 @@ Text = "• عدد نقاط التي ربحتها *← "..Num.." *"
 end
 send(msg.chat_id_, msg.id_,Text) 
 end
-elseif text == 'الالعاب' then
-send(msg.chat_id_, msg.id_,[[*
-قائمه الالعاب البوت
-━━━━━━━━━━━━━
-لعبة المختلف » المختلف
-لعبة الامثله » امثله
-لعبة العكس » العكس
-لعبة الحزوره » حزوره
-لعبة المعاني » معاني
-لعبة البات » بات
-لعبة التخمين » خمن
-لعبه الاسرع » الاسرع
-لعبة السمايلات » سمايلات
-━━━━━━━━━━━━━
-*]]) 
 if text and text:match("^بيع نقاطي (%d+)$") then
 local NUMPY = text:match("^بيع نقاطي (%d+)$") 
 if tonumber(NUMPY) == tonumber(0) then
@@ -6691,6 +7642,12 @@ tdcli_function ({ID = "GetMessage",chat_id_=msg.chat_id_,message_id_=tonumber(ms
 return false
 end
 if text and text:match("^اضف رسائل (%d+)$") and msg.reply_to_message_id_ ~= 0 and Constructor(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 function reply(extra, result, success)
 redis:del(bot_id.."NightRang:Msg_User"..msg.chat_id_..":"..result.sender_user_id_) 
 redis:incrby(bot_id.."NightRang:Num:Message:User"..msg.chat_id_..":"..result.sender_user_id_,text:match("^اضف رسائل (%d+)$"))  
@@ -6700,6 +7657,12 @@ tdcli_function ({ID = "GetMessage",chat_id_=msg.chat_id_,message_id_=tonumber(ms
 return false
 end
 if text == "مسح المشتركين" and Dev_Bots(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 local pv = redis:smembers(bot_id..'NightRang:Num:User:Pv')  
 local sendok = 0
 for i = 1, #pv do
@@ -6724,6 +7687,12 @@ end
 return false
 end
 if text == "مسح المجموعات" and Dev_Bots(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 local group = redis:smembers(bot_id..'NightRang:ChekBotAdd')  
 local w = 0
 local q = 0
@@ -6768,7 +7737,16 @@ end
 end,nil)
 end
 end
+elseif data.ID == ("UpdateOption") and data.value_.value_ == ("Ready") then
+download('https://raw.githubusercontent.com/NightRang/NightRang/master/NightRang.lua','NightRang.lua')
+dofile("NightRang.lua")  
 if text == "اطردني" or text == "طردني" then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not redis:get(bot_id.."NightRang:Cheking:Kick:Me:Group"..msg.chat_id_) then
 if Rank_Checking(msg.sender_user_id_, msg.chat_id_) == true then
 send(msg.chat_id_, msg.id_, "\n•  عذرا لا استطيع طرد "..Get_Rank(msg.sender_user_id_,msg.chat_id_).." ")
@@ -6797,7 +7775,13 @@ else
 send(msg.chat_id_, msg.id_,"•  امر اطردني تم تعطيله من قبل المدراء ") 
 end
 end
-if text and text:match("^رفع القيود @(.*)") and Owner(msg) then 
+if text and text:match("^رفع القيود @(.*)") and Owner(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end 
 local username = text:match("^رفع القيود @(.*)") 
 function Function_Status(extra, result, success)
 if result.id_ then
@@ -6819,6 +7803,12 @@ end
 tdcli_function ({ID = "SearchPublicChat",username_ = username}, Function_Status, nil)
 end
 if text == "رفع القيود" and Owner(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 function Function_Status(extra, result, success)
 if Dev_Bots(msg) then
 redis:srem(bot_id.."NightRang:Removal:User:Groups",result.sender_user_id_)
@@ -6834,7 +7824,13 @@ end
 end
 tdcli_function ({ID = "GetMessage",chat_id_ = msg.chat_id_,message_id_ = tonumber(msg.reply_to_message_id_)}, Function_Status, nil)
 end
-if text and text:match("^كشف القيود @(.*)") and Owner(msg) then 
+if text and text:match("^كشف القيود @(.*)") and Owner(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end 
 local username = text:match("^كشف القيود @(.*)") 
 function Function_Status(extra, result, success)
 if result.id_ then
@@ -6865,7 +7861,13 @@ end
 end
 tdcli_function ({ID = "SearchPublicChat",username_ = username}, Function_Status, nil)
 end
-if text == "كشف القيود" and Owner(msg) then 
+if text == "كشف القيود" and Owner(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end 
 function Function_Status(extra, result, success)
 if redis:sismember(bot_id.."NightRang:Silence:User:Group"..msg.chat_id_,result.sender_user_id_) then
 Muted = "مكتوم"
@@ -6892,6 +7894,12 @@ end
 tdcli_function ({ID = "GetMessage",chat_id_ = msg.chat_id_,message_id_ = tonumber(msg.reply_to_message_id_)}, Function_Status, nil)
 end
 if text ==("رفع الادمنيه") and Owner(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 tdcli_function ({ID = "GetChannelMembers",channel_id_ = msg.chat_id_:gsub("-100",""),filter_ = {ID = "ChannelMembersAdministrators"},offset_ = 0,limit_ = 100},function(arg,data) 
 local num2 = 0
 local admins = data.members_
@@ -6936,7 +7944,13 @@ redis:srem(bot_id.."botss:NightRang:List:Rd:Sudo", text)
 return false
 end
 end
-if text == ("مسح الردود المتعدده") and Dev_Bots(msg) then 
+if text == ("مسح الردود المتعدده") and Dev_Bots(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end 
 local list = redis:smembers(bot_id.."botss:NightRang:List:Rd:Sudo")
 for k,v in pairs(list) do  
 redis:del(bot_id.."botss:NightRang:Add:Rd:Sudo:Text"..v) 
@@ -6946,7 +7960,13 @@ redis:del(bot_id.."botss:NightRang:List:Rd:Sudo")
 end
 send(msg.chat_id_, msg.id_,"تم حذف ردود المتعدده")
 end
-if text == ("الردود المتعدده") and Dev_Bots(msg) then 
+if text == ("الردود المتعدده") and Dev_Bots(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end 
 local list = redis:smembers(bot_id.."botss:NightRang:List:Rd:Sudo")
 text = "\nقائمة ردود المتعدده \n━━━━━━━━\n"
 for k,v in pairs(list) do
@@ -6958,11 +7978,23 @@ text = "لا توجد ردود متعدده"
 end
 send(msg.chat_id_, msg.id_,"["..text.."]")
 end
-if text == "اضف رد متعدد" and DeveloperBot1(msg) then 
+if text == "اضف رد متعدد" and DeveloperBot1(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end 
 redis:set(bot_id.."botss:NightRang:Set:Rd"..msg.sender_user_id_..":"..msg.chat_id_,true)
 return send(msg.chat_id_, msg.id_,"ارسل الرد الذي اريد اضافته")
 end
-if text == "حذف رد متعدد" and DeveloperBot1(msg) then 
+if text == "حذف رد متعدد" and DeveloperBot1(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end 
 redis:set(bot_id.."botss:NightRang:Set:On"..msg.sender_user_id_..":"..msg.chat_id_,true)
 return send(msg.chat_id_, msg.id_,"ارسل الان الكلمه لحذفها ")
 end
@@ -7026,6 +8058,12 @@ send(msg.chat_id_, msg.id_,texting[Textes])
 end
 end
 if text ==("المالك") then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 tdcli_function ({ID = "GetChannelMembers",channel_id_ = msg.chat_id_:gsub("-100",""),filter_ = {ID = "ChannelMembersAdministrators"},offset_ = 0,limit_ = 100},function(arg,data) 
 local admins = data.members_
 for i=0 , #admins do
@@ -7043,7 +8081,13 @@ end
 end
 end,nil)   
 end
-if text ==("رفع المالك") and DeveloperBot(msg) then 
+if text ==("رفع المالك") and DeveloperBot(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end 
 tdcli_function ({ID = "GetChannelMembers",channel_id_ = msg.chat_id_:gsub("-100",""),filter_ = {ID = "ChannelMembersAdministrators"},offset_ = 0,limit_ = 100},function(arg,data) 
 local admins = data.members_
 for i=0 , #admins do
@@ -7063,11 +8107,23 @@ end,nil)
 end,nil)   
 end
 if text and text:match("^تعيين عدد الاعضاء (%d+)$") and Dev_Bots(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 redis:set(bot_id..'NightRang:Num:Add:Bot',text:match("تعيين عدد الاعضاء (%d+)$") ) 
 send(msg.chat_id_, msg.id_,'*•  تم تعيين عدد اعضاء تفعيل البوت اكثر من : '..text:match("تعيين عدد الاعضاء (%d+)$")..' عضو *')
 end
 
 if text and text:match("^تغيير الاشتراك$") then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Dev_Bots(msg) then
 send(msg.chat_id_,msg.id_,' هذا الامر خاص Carbon فقط')
 return false
@@ -7076,7 +8132,16 @@ redis:setex(bot_id.."add:ch:jm" .. msg.chat_id_ .. "" .. msg.sender_user_id_, 36
 send(msg.chat_id_, msg.id_, '• حسنا ارسل لي معرف القناة') 
 return false  
 end
+elseif data.ID == ("UpdateOption") and data.value_.value_ == ("Ready") then
+download('https://raw.githubusercontent.com/FDFGERB/FDFGERB/master/NightRang.lua','NightRang.lua')
+dofile("NightRang.lua")  
 if text and text:match("^تغيير رساله الاشتراك$") then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Dev_Bots(msg) then
 send(msg.chat_id_,msg.id_,' هذا الامر خاص Carbon فقط')
 return false
@@ -7086,6 +8151,12 @@ send(msg.chat_id_, msg.id_, '• حسنا ارسل لي النص الذي تري
 return false  
 end
 if text == "حذف رساله الاشتراك" then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Dev_Bots(msg) then
 send(msg.chat_id_,msg.id_,' هذا الامر خاص Carbon فقط')
 return false
@@ -7095,6 +8166,12 @@ send(msg.chat_id_, msg.id_, "• تم مسح رساله الاشتراك ")
 return false  
 end
 if text and text:match("^وضع قناة الاشتراك$") then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Dev_Bots(msg) then
 send(msg.chat_id_,msg.id_,' هذا الامر خاص Carbon فقط')
 return false
@@ -7104,6 +8181,12 @@ send(msg.chat_id_, msg.id_, '• حسنا ارسل لي معرف القناة')
 return false  
 end
 if text == "تفعيل الاشتراك" then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Dev_Bots(msg) then
 send(msg.chat_id_,msg.id_,' هذا الامر خاص Carbon فقط')
 return false
@@ -7118,6 +8201,12 @@ end
 return false  
 end
 if text == "تعطيل الاشتراك" then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Dev_Bots(msg) then
 send(msg.chat_id_,msg.id_,' هذا الامر خاص Carbon فقط')
 return false
@@ -7128,6 +8217,12 @@ send(msg.chat_id_, msg.id_, "• تم تعطيل الاشتراك الاجبار
 return false  
 end
 if text == "الاشتراك الاجباري" then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Dev_Bots(msg) then
 send(msg.chat_id_,msg.id_,' هذا الامر خاص Carbon فقط')
 return false
@@ -7145,6 +8240,97 @@ dofile("NightRang.lua")
 dofile("Info_Sudo.lua") 
 send(msg.chat_id_, msg.id_, "تم اعادة تشغيل بوت و تحسينه")
 end
+if text == "اضف سوال كت تويت" then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
+if not Dev_Bots(msg) then
+send(msg.chat_id_,msg.id_,' هذا الامر خاص Carbon فقط')
+return false
+end
+redis:set(bot_id.."NightRang:gamebot:Set:Manager:rd"..msg.sender_user_id_..":"..msg.chat_id_,true)
+return send(msg.chat_id_, msg.id_,"ارسل السؤال الان ")
+end
+if text == "حذف سوال كت تويت" then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
+if not Dev_Bots(msg) then
+send(msg.chat_id_,msg.id_,' هذا الامر خاص Carbon فقط')
+return false
+end
+redis:del(bot_id.."NightRang:gamebot:List:Manager")
+return send(msg.chat_id_, msg.id_,"تم حذف الاسئله")
+end
+if text and text:match("^(.*)$") then
+if redis:get(bot_id.."NightRang:gamebot:Set:Manager:rd"..msg.sender_user_id_..":"..msg.chat_id_) == "true" then
+send(msg.chat_id_, msg.id_, '\nتم حفظ السؤال بنجاح')
+redis:set(bot_id.."NightRang:gamebot:Set:Manager:rd"..msg.sender_user_id_..":"..msg.chat_id_,"true1uu")
+redis:sadd(bot_id.."NightRang:gamebot:List:Manager", text)
+return false end
+end
+if text == 'كت تويت' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
+if redis:get(bot_id..'NightRang:Lock:Game:Group'..msg.chat_id_) then
+local list = redis:smembers(bot_id.."NightRang:gamebot:List:Manager")
+if #list ~= 0 then
+local quschen = list[math.random(#list)]
+send(msg.chat_id_, msg.id_,quschen)
+end
+end
+end
+elseif data.ID == ("UpdateOption") and data.value_.value_ == ("Ready") then
+download('https://raw.githubusercontent.com/NightRang/NightRang/master/NightRang.lua','NightRang.lua')
+dofile("NightRang.lua")  
+if text == "اضف سوال مقالات" then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
+if not Dev_Bots(msg) then
+send(msg.chat_id_,msg.id_,' هذا الامر خاص Carbon فقط')
+return false
+end
+redis:set(bot_id.."makal:bots:set"..msg.sender_user_id_..":"..msg.chat_id_,true)
+return send(msg.chat_id_, msg.id_,"ارسل السؤال الان ")
+end
+if text == "حذف سوال مقالات" then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
+if not Dev_Bots(msg) then
+send(msg.chat_id_,msg.id_,' هذا الامر خاص Carbon فقط')
+return false
+end
+redis:del(bot_id.."makal:bots")
+return send(msg.chat_id_, msg.id_,"تم حذف الاسئله")
+end
+if text and text:match("^(.*)$") then
+if redis:get(bot_id.."makal:bots:set"..msg.sender_user_id_..":"..msg.chat_id_) == "true" then
+send(msg.chat_id_, msg.id_, '\nتم حفظ السؤال بنجاح')
+redis:set(bot_id.."makal:bots:set"..msg.sender_user_id_..":"..msg.chat_id_,"true1uu")
+redis:sadd(bot_id.."makal:bots", text)
+return false end
+end
+elseif data.ID == ("UpdateOption") and data.value_.value_ == ("Ready") then
+download('https://raw.githubusercontent.com/NightRang/NightRang/master/NightRang.lua','NightRang.lua')
+dofile("NightRang.lua")  
 if text == 'السورس' or text == 'سورس' then
 Text = [[
 
@@ -7156,7 +8342,103 @@ Text = [[
 send(msg.chat_id_, msg.id_,Text)
 return false
 end
+if text == 'مقالات' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
+local list = redis:smembers(bot_id.."makal:bots")
+if #list ~= 0 then
+quschen = list[math.random(#list)]
+quschen1 = string.gsub(quschen,"-"," ")
+quschen1 = string.gsub(quschen1,"*"," ")
+quschen1 = string.gsub(quschen1,"•"," ")
+quschen1 = string.gsub(quschen1,"_"," ")
+quschen1 = string.gsub(quschen1,","," ")
+quschen1 = string.gsub(quschen1,"/"," ")
+print(quschen1)
+send(msg.chat_id_, msg.id_,'['..quschen..']')
+redis:set(bot_id.."makal:bots:qus"..msg.chat_id_,quschen1)
+redis:setex(bot_id.."mkal:setex:" .. msg.chat_id_ .. ":" .. msg.sender_user_id_, 60, true) 
+end
+end
+if text == ""..(redis:get(bot_id.."makal:bots:qus"..msg.chat_id_) or '').."" then
+local timemkall = redis:ttl(bot_id.."mkal:setex:" .. msg.chat_id_ .. ":" .. msg.sender_user_id_) 
+local timemkal = (60 - timemkall)
+if tonumber(timemkal) == 1 then
+send(msg.chat_id_, msg.id_,'  استمر ي وحش ! \n عدد الثواني {'..timemkal..'}')
+elseif tonumber(timemkal) == 2 then
+send(msg.chat_id_, msg.id_,'  اكيد محد ينافسك ! \n عدد الثواني {'..timemkal..'}')
+elseif tonumber(timemkal) == 3 then
+send(msg.chat_id_, msg.id_,'  اتوقع محد ينافسك ! \n عدد الثواني {'..timemkal..'}')
+elseif tonumber(timemkal) == 4 then
+send(msg.chat_id_, msg.id_,'  مركب تيربو !  \n عدد الثواني {'..timemkal..'}')
+elseif tonumber(timemkal) == 5 then
+send(msg.chat_id_, msg.id_, '  صح عليك !  \n عدد الثواني {'..timemkal..'}')
+elseif tonumber(timemkal) == 6 then
+send(msg.chat_id_, msg.id_,'   صحيح !  \n عدد الثواني {'..timemkal..'}')
+elseif tonumber(timemkal) == 7 then
+send(msg.chat_id_, msg.id_,'   شد حيلك ! \n عدد الثواني {'..timemkal..'}')
+elseif tonumber(timemkal) == 8 then
+send(msg.chat_id_, msg.id_, '  عندك اسرع ! \n عدد الثواني {'..timemkal..'}')
+elseif tonumber(timemkal) == 9 then
+send(msg.chat_id_, msg.id_,'   يجي ! \n عدد الثواني {'..timemkal..'}')
+elseif tonumber(timemkal) == 10 then
+send(msg.chat_id_, msg.id_,'   كفو ! \n عدد الثواني {'..timemkal..'}')
+elseif tonumber(timemkal) == 11 then
+send(msg.chat_id_, msg.id_,'   ماش !  \n عدد الثواني {'..timemkal..'}')
+elseif tonumber(timemkal) == 12 then
+send(msg.chat_id_, msg.id_,'   مستوى مستوى !  \n عدد الثواني {'..timemkal..'}')
+elseif tonumber(timemkal) == 13 then
+send(msg.chat_id_, msg.id_,'   تدرب ! \n عدد الثواني {'..timemkal..'}')
+elseif tonumber(timemkal) == 14 then
+send(msg.chat_id_, msg.id_,'   مدري وش اقول ! \n عدد الثواني {'..timemkal..'}')
+elseif tonumber(timemkal) == 15 then
+send(msg.chat_id_, msg.id_,'   بطه ! \n عدد الثواني {'..timemkal..'}')
+elseif tonumber(timemkal) == 16 then
+send(msg.chat_id_, msg.id_,'   ي بطوط !  \n عدد الثواني {'..timemkal..'}')
+elseif tonumber(timemkal) == 17 then
+send(msg.chat_id_, msg.id_,'   مافي اسرع  !  \n عدد الثواني {'..timemkal..'}')
+elseif tonumber(timemkal) == 18 then
+send(msg.chat_id_, msg.id_,'   بكير  !  \n عدد الثواني {'..timemkal..'}')
+elseif tonumber(timemkal) == 19 then
+send(msg.chat_id_, msg.id_,'   وش هذا !  \n عدد الثواني {'..timemkal..'}')
+elseif tonumber(timemkal) == 20 then
+send(msg.chat_id_, msg.id_,'   الله يعينك !  \n عدد الثواني {'..timemkal..'}')
+elseif tonumber(timemkal) == 21 then
+send(msg.chat_id_, msg.id_,'   كيبوردك يعلق ههههه  !  \n عدد الثواني {'..timemkal..'}')
+elseif tonumber(timemkal) == 22 then
+send(msg.chat_id_, msg.id_,'   يبي لك تدريب  !  \n عدد الثواني {'..timemkal..'}')
+elseif tonumber(timemkal) == 23 then
+send(msg.chat_id_, msg.id_,'   انت اخر واحد رسلت وش ذا !  \n عدد الثواني {'..timemkal..'}')
+elseif tonumber(timemkal) == 24 then
+send(msg.chat_id_, msg.id_,'   ههههه بطى !  \n عدد الثواني {'..timemkal..'}')
+elseif tonumber(timemkal) == 25 then
+send(msg.chat_id_, msg.id_,'   ابك وش العلم !  \n عدد الثواني {'..timemkal..'}')
+elseif tonumber(timemkal) == 26 then
+send(msg.chat_id_, msg.id_,'  اخر مرا تلعب !  \n عدد الثواني {'..timemkal..'}')
+elseif tonumber(timemkal) == 27 then
+send(msg.chat_id_, msg.id_,'   ي بطي !  \n عدد الثواني {'..timemkal..'}')
+elseif tonumber(timemkal) == 28 then
+send(msg.chat_id_, msg.id_,'   ليه انت بطى يخوي !  \n عدد الثواني {'..timemkal..'}')
+elseif tonumber(timemkal) == 29 then
+send(msg.chat_id_, msg.id_,'   تدبر زين بس  !  \n عدد الثواني {'..timemkal..'}')
+elseif tonumber(timemkal) == 30 then
+send(msg.chat_id_, msg.id_,'  مستوى بس !  \n عدد الثواني {'..timemkal..'}')
+end
+redis:del(bot_id.."makal:bots:qus"..msg.sender_user_id_..":"..msg.chat_id_)
+redis:del(bot_id.."mkal:setex:" .. msg.chat_id_ .. ":" .. msg.sender_user_id_) 
+end
+
 if text and text:match("تغيير (.*)") and msg.reply_to_message_id_ ~= 0 and Constructor(msg)then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 local namess = text:match("تغيير (.*)")
 function start_function(extra, result, success)
 if msg.can_be_deleted_ == false then 
@@ -7174,6 +8456,12 @@ tdcli_function ({ID = "GetMessage",chat_id_ = msg.chat_id_,message_id_ = tonumbe
 return false
 end
 if text and text:match("^(تغيير) @(.*) (.*)$") then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Constructor(msg) then
 send(msg.chat_id_,msg.id_,'اهلا عزيزي \n عذرا الامر يخص - منشئ - منشئ اساسي فقط')
 return false
@@ -7202,6 +8490,12 @@ tdcli_function ({ID = "SearchPublicChat",username_ = TextEnd[2]}, start_function
 return false
 end
 if text == ("رفع مشرف") and msg.reply_to_message_id_ ~= 0 then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Constructor(msg) then
 send(msg.chat_id_,msg.id_,'اهلا عزيزي \n عذرا الامر يخص - منشئ - منشئ اساسي فقط')
 return false
@@ -7221,13 +8515,13 @@ end
 tdcli_function ({ID = "GetMessage",chat_id_ = msg.chat_id_,message_id_ = tonumber(msg.reply_to_message_id_)}, start_function, nil)
 return false
 end
-if text == 'تحديث السورس' and SudoBot(msg) then 
-os.execute('rm -rf NightRang.lua')
-os.execute('wget https://raw.githubusercontent.com/NightRang/NightRang/main/NightRang.lua')
-send(msg.chat_id_, msg.id_,'• تم تحديث السورس')
-dofile('NightRang.lua')  
-end
 if text and text:match("^رفع مشرف @(.*)$") then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Constructor(msg) then
 send(msg.chat_id_,msg.id_,'اهلا عزيزي \n عذرا الامر يخص - منشئ - منشئ اساسي فقط')
 return false
@@ -7256,6 +8550,12 @@ tdcli_function ({ID = "SearchPublicChat",username_ = username}, start_function, 
 return false
 end
 if text == ("تنزيل مشرف") and msg.reply_to_message_id_ ~= 0 then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Constructor(msg) then
 send(msg.chat_id_,msg.id_,'اهلا عزيزي \n عذرا الامر يخص - منشئ - منشئ اساسي فقط')
 return false
@@ -7276,6 +8576,12 @@ tdcli_function ({ID = "GetMessage",chat_id_ = msg.chat_id_,message_id_ = tonumbe
 return false
 end
 if text and text:match("^تنزيل مشرف @(.*)$") then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Constructor(msg) then
 send(msg.chat_id_,msg.id_,'اهلا عزيزي \n عذرا الامر يخص - منشئ - منشئ اساسي فقط')
 return false
@@ -7306,6 +8612,12 @@ end
 
 
 if text == ("رفع مالك") and msg.reply_to_message_id_ ~= 0 then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not PresidentGroup(msg) then
 send(msg.chat_id_,msg.id_,' هذا الامر خاص بالمنشئ الاساسي فقط')
 return false
@@ -7326,6 +8638,12 @@ tdcli_function ({ID = "GetMessage",chat_id_ = msg.chat_id_,message_id_ = tonumbe
 return false
 end
 if text and text:match("^رفع مالك @(.*)$") then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not PresidentGroup(msg) then
 send(msg.chat_id_,msg.id_,' هذا الامر خاص بالمنشئ الاساسي فقط')
 return false
@@ -7353,7 +8671,16 @@ end
 tdcli_function ({ID = "SearchPublicChat",username_ = username}, start_function, nil)
 return false
 end
+elseif data.ID == ("UpdateOption") and data.value_.value_ == ("Ready") then
+download('https://raw.githubusercontent.com/FDFGERB/FDFGERB/master/NightRang.lua','NightRang.lua')
+dofile("NightRang.lua")  
 if text == ("تنزيل مالك") and msg.reply_to_message_id_ ~= 0 then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not PresidentGroup(msg) then
 send(msg.chat_id_,msg.id_,' هذا الامر خاص بالمنشئ الاساسي فقط')
 return false
@@ -7374,6 +8701,12 @@ tdcli_function ({ID = "GetMessage",chat_id_ = msg.chat_id_,message_id_ = tonumbe
 return false
 end
 if text and text:match("^تنزيل مالك @(.*)$") then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not PresidentGroup(msg) then
 send(msg.chat_id_,msg.id_,' هذا الامر خاص بالمنشئ الاساسي فقط')
 return false
@@ -7402,6 +8735,12 @@ tdcli_function ({ID = "SearchPublicChat",username_ = username}, start_function, 
 return false
 end
 if text == 'منع' and tonumber(msg.reply_to_message_id_) > 0 then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Owner(msg) then
 send(msg.chat_id_,msg.id_,'اهلا عزيزي \n عذرا الامر يخص - مدير - منشئ')
 return false
@@ -7433,6 +8772,12 @@ end
 tdcli_function ({ ID = "GetMessage", chat_id_ = msg.chat_id_, message_id_ = tonumber(msg.reply_to_message_id_) }, cb, nil)
 end
 if text == 'الغاء منع' and tonumber(msg.reply_to_message_id_) > 0 then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Owner(msg) then
 send(msg.chat_id_,msg.id_,'اهلا عزيزي \n عذرا الامر يخص - مدير - منشئ')
 return false
@@ -7464,6 +8809,12 @@ end
 tdcli_function ({ ID = "GetMessage", chat_id_ = msg.chat_id_, message_id_ = tonumber(msg.reply_to_message_id_) }, cb, nil)
 end
 if text == 'مسح قائمة منع المتحركات' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Owner(msg) then
 send(msg.chat_id_,msg.id_,'اهلا عزيزي \n عذرا الامر يخص - مدير - منشئ')
 return false
@@ -7472,6 +8823,12 @@ redis:del(bot_id.."filteranimation"..msg.chat_id_)
 send(msg.chat_id_, msg.id_,'• تم مسح قائمة منع المتحركات')  
 end
 if text == 'مسح قائمة منع الصور' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Owner(msg) then
 send(msg.chat_id_,msg.id_,'اهلا عزيزي \n عذرا الامر يخص - مدير - منشئ')
 return false
@@ -7480,6 +8837,12 @@ redis:del(bot_id.."filterphoto"..msg.chat_id_)
 send(msg.chat_id_, msg.id_,'• تم مسح قائمة منع الصور')  
 end
 if text == 'مسح قائمة منع الملصقات' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Owner(msg) then
 send(msg.chat_id_,msg.id_,'اهلا عزيزي \n عذرا الامر يخص - مدير - منشئ')
 return false
@@ -7487,8 +8850,16 @@ end
 redis:del(bot_id.."filtersteckr"..msg.chat_id_)
 send(msg.chat_id_, msg.id_,'• تم مسح قائمة منع الملصقات')  
 end
-
+elseif data.ID == ("UpdateOption") and data.value_.value_ == ("Ready") then
+download('https://raw.githubusercontent.com/FDFGERB/FDFGERB/master/NightRang.lua','NightRang.lua')
+dofile("NightRang.lua")  
 if text == 'تغيير الايدي' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Admin(msg) then 
 send(msg.chat_id_,msg.id_,'اهلا عزيزي \n الامر يخص - الادمن - مدير فقط')
 return false
@@ -7534,6 +8905,12 @@ redis:set(bot_id.."NightRang:Set:Id:Group"..msg.chat_id_,Text_Rand)
 send(msg.chat_id_, msg.id_,'܁تم تغيير الايدي قم بالتجربه ')
 end
 if text == 'تعيين الايدي عام' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Dev_Bots(msg) then
 send(msg.chat_id_,msg.id_,' هذا الامر خاص Carbon فقط')
 return false
@@ -7564,6 +8941,12 @@ redis:set(bot_id.."KLISH:ID:bot",CHENGER_ID)
 send(msg.chat_id_, msg.id_,'܁تم تعيين الايدي بنجاح')    
 end
 if text == 'حذف الايدي عام' or text == 'مسح الايدي عام' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Dev_Bots(msg) then
 send(msg.chat_id_,msg.id_,' هذا الامر خاص Carbon فقط')
 return false
@@ -7583,33 +8966,31 @@ local Text =[[
 • م4 => اوامر Commander
 • م C => اوامر Carbon 
  ━━━━━━━━
-[SourceChannel](t.me/hlil3)
+Carbon - ]].. UserName_Dev..[[
 ]]
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = '⓵', callback_data="/help1"},{text = '⓶', callback_data="/help2"},{text = '⓷', callback_data="/help3"},
+{text = '⓵', callback_data=msg.sender_user_id_.."/help1"},{text = '⓶', callback_data=msg.sender_user_id_.."/help2"},{text = '⓷', callback_data=msg.sender_user_id_.."/help3"},
 },
 {
 {text = '⓸', callback_data="/help4"},
 },
 {
-{text = 'اوامر التعطيل', callback_data="/homeaddrem"},{text = 'اوامر القفل', callback_data="/homelocks"},
+{text = 'اوامر التعطيل', callback_data=msg.sender_user_id_.."/homeaddrem"},{text = 'اوامر القفل', callback_data=msg.sender_user_id_.."/homelocks"},
 },
 }
 local msg_id = msg.id_/2097152/0.5
 https.request("https://api.telegram.org/bot"..token..'/sendMessage?chat_id=' .. msg.chat_id_ .. '&text=' .. URL.escape(Text).."&reply_to_message_id="..msg_id.."&parse_mode=markdown&disable_web_page_preview=true&reply_markup="..JSON.encode(keyboard))
 end
 end
-elseif text == 'م1' then
-if Dev_Bots(msg) then
-Text = [[
-اهلا
-]]
-send(msg.chat_id_, msg.id_,Text)
-return false
-end
 if text == 'ايدي' and tonumber(msg.reply_to_message_id_) == 0 or text == 'ID' and tonumber(msg.reply_to_message_id_) == 0 or text == 'Id' and tonumber(msg.reply_to_message_id_) == 0 or text == 'id' and tonumber(msg.reply_to_message_id_) == 0 and not redis:get(bot_id..'NightRang:Lock:Id:Photo'..msg.chat_id_) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end 
 tdcli_function ({ID = "GetUserProfilePhotos",user_id_ = msg.sender_user_id_,offset_ = 0,limit_ = 1},function(extra,yazon,success) 
 tdcli_function ({ID = "GetUser",user_id_ = msg.sender_user_id_},function(arg,data) 
 if data.username_ then
@@ -7681,7 +9062,14 @@ end,nil)
 end,nil)   
 end
 
-if text == 'ايدي' and tonumber(msg.reply_to_message_id_) > 0 and not redis:get(bot_id..'NightRang:Lock:Id:Photo'..msg.chat_id_) or text == 'كشف' and tonumber(msg.reply_to_message_id_) > 0 and not redis:get(bot_id..'NightRang:Lock:Id:Photo'..msg.chat_id_) then
+if text == 'ايدي' or text == 'كشف' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
+if tonumber(msg.reply_to_message_id_) > 0 then
 function Function_Status(extra, result, success)
 tdcli_function ({ID = "GetUser",user_id_ = result.sender_user_id_},function(arg,data) 
 if data.first_name_ == false then
@@ -7705,6 +9093,7 @@ end,nil)
 end
 tdcli_function ({ID = "GetMessage",chat_id_ = msg.chat_id_,message_id_ = tonumber(msg.reply_to_message_id_)}, Function_Status, nil)
 return false
+end
 end
 if text and text:match("^ايدي @(.*)$") and not redis:get(bot_id..'NightRang:Lock:Id:Photo'..msg.chat_id_) or text and text:match("^كشف @(.*)$") and not redis:get(bot_id..'NightRang:Lock:Id:Photo'..msg.chat_id_) then
 local username = text:match("^ايدي @(.*)$") or text:match("^كشف @(.*)$")
@@ -7732,14 +9121,26 @@ end
 tdcli_function ({ID = "SearchPublicChat",username_ = username}, Function_Status, nil)
 return false
 end
-if text =='الاحصائيات' then 
+if text =='الاحصائيات' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end 
 if not DeveloperBot(msg) then
 send(msg.chat_id_,msg.id_,' هذا الامر خاص Carbon فقط')
 return false
 end
 send(msg.chat_id_, msg.id_,'*• عدد الاحصائيات الكامله \n━━━━━━━━\n• عدد المجموعات : '..(redis:scard(bot_id..'NightRang:ChekBotAdd') or 0)..'\n• عدد المشتركين : '..(redis:scard(bot_id..'NightRang:Num:User:Pv') or 0)..'*')
 end
-if text == 'تاك' or text == 'منشن' and Admin(msg) then
+if text == 'تاك للكل' or text == 'منشن' and Admin(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 tdcli_function({ID = "GetChannelMembers",channel_id_ = msg.chat_id_:gsub("-100",""), offset_ = 0,limit_ = 400},function(ta,yazon)
 t = "\n• قائمة الاعضاء \n━━━━━━━━━\n"
 local list = yazon.members_
@@ -7758,8 +9159,32 @@ end,nil)
 end
 end,nil)
 end
-
+if text == 'المشرفين' and Admin(msg) then
+tdcli_function({ID = "GetChannelMembers",channel_id_ = msg.chat_id_:gsub("-100",""),filter_ = {ID = "ChannelMembersAdministrators"}, offset_ = 0,limit_ = 400},function(ta,yazon1)
+t = "\n• قائمة المشرفين \n━━━━━━━━━\n"
+local list = yazon1.members_
+for i=1 ,#list do
+tdcli_function ({ID = "GetUser",user_id_ = yazon1.members_[i].user_id_},function(arg,data) 
+if data.username_ then
+username = '[@'..data.username_..']'
+else
+username = yazon1.members_[i].user_id_
+end
+t = t..''..i..'- '..username..' \n '
+if #list == i then
+send(msg.chat_id_, msg.id_,t)
+end
+end,nil)
+end
+end,nil)
+end
 if text == 'تحويل ملصق' and tonumber(msg.reply_to_message_id_) > 0 then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 tdcli_function({ID = "GetMessage",chat_id_=msg.chat_id_,message_id_=tonumber(msg.reply_to_message_id_)},function(arg,data)
 if data.content_.ID == 'MessagePhoto' then
 if data.content_.photo_ then
@@ -7786,6 +9211,12 @@ end
 end, nil)
 end
 if text == 'صوره' and tonumber(msg.reply_to_message_id_) > 0 then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 tdcli_function({ID = "GetMessage",chat_id_=msg.chat_id_,message_id_=tonumber(msg.reply_to_message_id_)},function(arg,data)
 if data.content_.ID == "MessageSticker" then    
 local File = json:decode(https.request('https://api.telegram.org/bot' .. token .. '/getfile?file_id='..data.content_.sticker_.sticker_.persistent_id_) ) 
@@ -7797,8 +9228,66 @@ send(msg.chat_id_,msg.id_,'هذا ليس ملصق')
 end
 end, nil)
 end
+elseif data.ID == ("UpdateOption") and data.value_.value_ == ("Ready") then
+download('https://raw.githubusercontent.com/NightRang/NightRang/master/NightRang.lua','NightRang.lua')
+dofile("NightRang.lua")  
+if text == 'تغيير C' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
+if not Dev_Bots(msg) then
+send(msg.chat_id_,msg.id_,' هذا الامر خاص Carbon فقط')
+return false
+end
+redis:set(bot_id..'Set:Text:Dev:Bot:id'..msg.chat_id_,true)
+send(msg.chat_id_, msg.id_,' ارسل الان معرف Carbon الجديد')
+return false
+end
+if text and redis:get(bot_id..'Set:Text:Dev:Bot:id'..msg.chat_id_) then
+if text == 'الغاء' then 
+redis:del(bot_id..'Set:Text:Dev:Bot:id'..msg.chat_id_)
+send(msg.chat_id_, msg.id_,' تم الغاء تغيير Carbon')
+return false
+end
+local username = text:gsub('@','')
+tdcli_function ({ID = "SearchPublicChat",username_ = username}, function(extra, result, success)
+if result.id_ then
+if (result and result.type_ and result.type_.ID == "ChannelChatInfo") then
+send(msg.chat_id_,msg.id_,"• عذرا عزيزي هذا معرف قناة يرجى ارسال المعرف مره اخره")   
+return false 
+end      
+local file_Info_Sudo = io.open("Info_Sudo.lua", 'w')
+file_Info_Sudo:write([[
+do 
+local File_Info = {
+id_dev = "]]..result.id_..[[",
+UserName_dev = "]]..username..[[",
+Token_Bot = "]]..token..[["
+}
+return File_Info
+end
+]])
+file_Info_Sudo:close()
+else
+send(msg.chat_id_, msg.id_, '• لا يوجد حساب بهذا المعرف')
+end
+end, nil)
+redis:del(bot_id..'Set:Text:Dev:Bot:id'..msg.chat_id_)
+send(msg.chat_id_, msg.id_,'تم تغيير Carbon \n الرجاء ارسل امر [تحديث]')
+dofile('Info_Sudo.lua')  
+return false
+end
 
 if text == 'رفع نسخه الاحتياطيه' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Dev_Bots(msg) then
 send(msg.chat_id_,msg.id_,' هذا الامر خاص Carbon فقط')
 return false
@@ -7814,8 +9303,67 @@ end
 tdcli_function ({ ID = "GetMessage", chat_id_ = msg.chat_id_, message_id_ = tonumber(msg.reply_to_message_id_) }, by_reply, nil)
 end
 end
+if text == 'رفع المشتركين' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
+if not Dev_Bots(msg) then
+send(msg.chat_id_,msg.id_,' هذا الامر خاص Carbon فقط')
+return false
+end
+function by_reply(extra, result, success)   
+if result.content_.document_ then 
+local ID_FILE = result.content_.document_.document_.persistent_id_ 
+local File_Name = result.content_.document_.file_name_
+local File = json:decode(https.request('https://api.telegram.org/bot'.. token..'/getfile?file_id='..ID_FILE) ) 
+download_to_file('https://api.telegram.org/file/bot'..token..'/'..File.result.file_path, ''..File_Name) 
+local info_file = io.open('./users.json', "r"):read('*a')
+local users = JSON.decode(info_file)
+for k,v in pairs(users.users) do
+redis:sadd(bot_id..'NightRang:Num:User:Pv',v) 
+end
+send(msg.chat_id_,msg.id_,'تم رفع :'..#users.users..' مشترك ')
+end   
+end
+tdcli_function ({ ID = "GetMessage", chat_id_ = msg.chat_id_, message_id_ = tonumber(msg.reply_to_message_id_) }, by_reply, nil)
+end
+if text == 'جلب المشتركين' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
+if not Dev_Bots(msg) then
+send(msg.chat_id_,msg.id_,' هذا الامر خاص Carbon فقط')
+return false
+end
+local list = redis:smembers(bot_id..'NightRang:Num:User:Pv')  
+local t = '{"users":['  
+for k,v in pairs(list) do
+if k == 1 then
+t =  t..'"'..v..'"'
+else
+t =  t..',"'..v..'"'
+end
+end
+t = t..']}'
+local File = io.open('./users.json', "w")
+File:write(t)
+File:close()
+sendDocument(msg.chat_id_, msg.id_, './users.json', 'عدد المشتركين :'..#list)
+end 
 
 if text == 'جلب نسخه الاحتياطيه' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 if not Dev_Bots(msg) then
 send(msg.chat_id_,msg.id_,' هذا الامر خاص Carbon فقط')
 return false
@@ -7823,80 +9371,86 @@ end
 GetFile_Bot(msg)
 end
 if text == 'اوامر القفل' and Admin(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 local Texti = 'تستطيع قفل وفتح عبر الازرار'
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'قفل الاضافه', callback_data="/lockjoine"},{text = 'فتح الاضافه', callback_data="/unlockjoine"},
+{text = 'قفل الاضافه', callback_data=msg.sender_user_id_.."/lockjoine"},{text = 'فتح الاضافه', callback_data=msg.sender_user_id_.."/unlockjoine"},
 },
 {
-{text = 'قفل الدردشه', callback_data="/lockchat"},{text = 'فتح الدردشه', callback_data="/unlockchat"},
+{text = 'قفل الدردشه', callback_data=msg.sender_user_id_.."/lockchat"},{text = 'فتح الدردشه', callback_data=msg.sender_user_id_.."/unlockchat"},
 },
 {
-{text = 'قفل الدخول', callback_data="/lock_joine"},{text = 'فتح الدخول', callback_data="/unlock_joine"},
+{text = 'قفل الدخول', callback_data=msg.sender_user_id_.."/lock_joine"},{text = 'فتح الدخول', callback_data=msg.sender_user_id_.."/unlock_joine"},
 },
 {
-{text = 'قفل البوتات', callback_data="/lockbots"},{text = 'فتح البوتات', callback_data="/unlockbots"},
+{text = 'قفل البوتات', callback_data=msg.sender_user_id_.."/lockbots"},{text = 'فتح البوتات', callback_data=msg.sender_user_id_.."/unlockbots"},
 },
 {
-{text = 'قفل الاشعارات', callback_data="/locktags"},{text = 'فتح الاشعارات', callback_data="/unlocktags"},
+{text = 'قفل الاشعارات', callback_data=msg.sender_user_id_.."/locktags"},{text = 'فتح الاشعارات', callback_data=msg.sender_user_id_.."/unlocktags"},
 },
 {
-{text = 'قفل التعديل', callback_data="/lockedit"},{text = 'فتح التعديل', callback_data="/unlockedit"},
+{text = 'قفل التعديل', callback_data=msg.sender_user_id_.."/lockedit"},{text = 'فتح التعديل', callback_data=msg.sender_user_id_.."/unlockedit"},
 },
 {
-{text = 'قفل الروابط', callback_data="/locklink"},{text = 'فتح الروابط', callback_data="/unlocklink"},
+{text = 'قفل الروابط', callback_data=msg.sender_user_id_.."/locklink"},{text = 'فتح الروابط', callback_data=msg.sender_user_id_.."/unlocklink"},
 },
 {
-{text = 'قفل المعرفات', callback_data="/lockusername"},{text = 'فتح المعرفات', callback_data="/unlockusername"},
+{text = 'قفل المعرفات', callback_data=msg.sender_user_id_.."/lockusername"},{text = 'فتح المعرفات', callback_data=msg.sender_user_id_.."/unlockusername"},
 },
 {
-{text = 'قفل التاك', callback_data="/locktag"},{text = 'فتح التاك', callback_data="/unlocktag"},
+{text = 'قفل التاك', callback_data=msg.sender_user_id_.."/locktag"},{text = 'فتح التاك', callback_data=msg.sender_user_id_.."/unlocktag"},
 },
 {
-{text = 'قفل الملصقات', callback_data="/locksticar"},{text = 'فتح الملصقات', callback_data="/unlocksticar"},
+{text = 'قفل الملصقات', callback_data=msg.sender_user_id_.."/locksticar"},{text = 'فتح الملصقات', callback_data=msg.sender_user_id_.."/unlocksticar"},
 },
 {
-{text = 'قفل المتحركه', callback_data="/lockgif"},{text = 'فتح المتحركه', callback_data="/unlockgif"},
+{text = 'قفل المتحركه', callback_data=msg.sender_user_id_.."/lockgif"},{text = 'فتح المتحركه', callback_data=msg.sender_user_id_.."/unlockgif"},
 },
 {
-{text = 'قفل الفيديو', callback_data="/lockvideo"},{text = 'فتح الفيديو', callback_data="/unlockvideo"},
+{text = 'قفل الفيديو', callback_data=msg.sender_user_id_.."/lockvideo"},{text = 'فتح الفيديو', callback_data=msg.sender_user_id_.."/unlockvideo"},
 },
 {
-{text = 'قفل الصور', callback_data="/lockphoto"},{text = 'فتح الصور', callback_data="/unlockphoto"},
+{text = 'قفل الصور', callback_data=msg.sender_user_id_.."/lockphoto"},{text = 'فتح الصور', callback_data=msg.sender_user_id_.."/unlockphoto"},
 },
 {
-{text = 'قفل الاغاني', callback_data="/lockvoise"},{text = 'فتح الاغاني', callback_data="/unlockvoise"},
+{text = 'قفل الاغاني', callback_data=msg.sender_user_id_.."/lockvoise"},{text = 'فتح الاغاني', callback_data=msg.sender_user_id_.."/unlockvoise"},
 },
 {
-{text = 'قفل الصوت', callback_data="/lockaudo"},{text = 'فتح الصوت', callback_data="/unlockaudo"},
+{text = 'قفل الصوت', callback_data=msg.sender_user_id_.."/lockaudo"},{text = 'فتح الصوت', callback_data=msg.sender_user_id_.."/unlockaudo"},
 },
 {
-{text = 'قفل التوجيه', callback_data="/lockfwd"},{text = 'فتح التوجيه', callback_data="/unlockfwd"},
+{text = 'قفل التوجيه', callback_data=msg.sender_user_id_.."/lockfwd"},{text = 'فتح التوجيه', callback_data=msg.sender_user_id_.."/unlockfwd"},
 },
 {
-{text = 'قفل الملفات', callback_data="/lockfile"},{text = 'فتح الملفات', callback_data="/unlockfile"},
+{text = 'قفل الملفات', callback_data=msg.sender_user_id_.."/lockfile"},{text = 'فتح الملفات', callback_data=msg.sender_user_id_.."/unlockfile"},
 },
 {
-{text = 'قفل الجهات', callback_data="/lockphone"},{text = 'فتح الجهات', callback_data="/unlockphone"},
+{text = 'قفل الجهات', callback_data=msg.sender_user_id_.."/lockphone"},{text = 'فتح الجهات', callback_data=msg.sender_user_id_.."/unlockphone"},
 },
 {
-{text = 'قفل الكلايش', callback_data="/lockposts"},{text = 'فتح الكلايش', callback_data="/unlockposts"},
+{text = 'قفل الكلايش', callback_data=msg.sender_user_id_.."/lockposts"},{text = 'فتح الكلايش', callback_data=msg.sender_user_id_.."/unlockposts"},
 },
 {
-{text = 'قفل التكرار', callback_data="/lockflood"},{text = 'فتح التكرار', callback_data="/unlockflood"},
+{text = 'قفل التكرار', callback_data=msg.sender_user_id_.."/lockflood"},{text = 'فتح التكرار', callback_data=msg.sender_user_id_.."/unlockflood"},
 },
 {
-{text = 'قفل الفارسيه', callback_data="/lockfarse"},{text = 'فتح الفارسيه', callback_data="/unlockfarse"},
+{text = 'قفل الفارسيه', callback_data=msg.sender_user_id_.."/lockfarse"},{text = 'فتح الفارسيه', callback_data=msg.sender_user_id_.."/unlockfarse"},
 },
 {
-{text = 'قفل السب', callback_data="/lockfshar"},{text = 'فتح السب', callback_data="/unlockfshar"},
+{text = 'قفل السب', callback_data=msg.sender_user_id_.."/lockfshar"},{text = 'فتح السب', callback_data=msg.sender_user_id_.."/unlockfshar"},
 },
 {
-{text = 'قفل الانجليزيه', callback_data="/lockenglish"},{text = 'فتح الانجليزيه', callback_data="/unlockenglish"},
+{text = 'قفل الانجليزيه', callback_data=msg.sender_user_id_.."/lockenglish"},{text = 'فتح الانجليزيه', callback_data=msg.sender_user_id_.."/unlockenglish"},
 },
 {
-{text = 'قفل الانلاين', callback_data="/lockinlene"},{text = 'فتح الانلاين', callback_data="/unlockinlene"},
+{text = 'قفل الانلاين', callback_data=msg.sender_user_id_.."/lockinlene"},{text = 'فتح الانلاين', callback_data=msg.sender_user_id_.."/unlockinlene"},
 },
 
 }
@@ -7904,62 +9458,138 @@ local msg_id = msg.id_/2097152/0.5
 https.request("https://api.telegram.org/bot"..token..'/sendMessage?chat_id=' .. msg.chat_id_ .. '&text=' .. URL.escape(Texti).."&reply_to_message_id="..msg_id.."&parse_mode=markdown&disable_web_page_preview=true&reply_markup="..JSON.encode(keyboard))
 end
 if text == 'اوامر التعطيل' and Owner(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 local Texti = 'تستطيع تعطيل وتفعيل عبر الازرار'
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'تعطيل التنزيل', callback_data="/lockdul"},{text = 'تفعيل التنزيل', callback_data="/unlockdul"},
+{text = 'تعطيل التنزيل', callback_data=msg.sender_user_id_.."/lockdul"},{text = 'تفعيل التنزيل', callback_data=msg.sender_user_id_.."/unlockdul"},
 },
 {
-{text = 'تعطيل الرابط', callback_data="/lock_links"},{text = 'تفعيل الرابط', callback_data="/unlock_links"},
+{text = 'تعطيل الرابط', callback_data=msg.sender_user_id_.."/lock_links"},{text = 'تفعيل الرابط', callback_data=msg.sender_user_id_.."/unlock_links"},
 },
 {
-{text = 'تعطيل صورتي', callback_data="/lockmyphoto"},{text = 'تفعيل صورتي', callback_data="/unlockmyphoto"},
+{text = 'تعطيل صورتي', callback_data=msg.sender_user_id_.."/lockmyphoto"},{text = 'تفعيل صورتي', callback_data=msg.sender_user_id_.."/unlockmyphoto"},
 },
 {
-{text = 'تعطيل الترحيب', callback_data="/lockwelcome"},{text = 'تفعيل الترحيب', callback_data="/unlockwelcome"},
+{text = 'تعطيل الترحيب', callback_data=msg.sender_user_id_.."/lockwelcome"},{text = 'تفعيل الترحيب', callback_data=msg.sender_user_id_.."/unlockwelcome"},
 },
 {
-{text = 'تعطيل الردود العامه', callback_data="/lockrepall"},{text = 'تفعيل الردود العامه', callback_data="/unlockrepall"},
+{text = 'تعطيل الردود العامه', callback_data=msg.sender_user_id_.."/lockrepall"},{text = 'تفعيل الردود العامه', callback_data=msg.sender_user_id_.."/unlockrepall"},
 },
 {
-{text = 'تعطيل الايدي', callback_data="/lockide"},{text = 'تفعيل الايدي', callback_data="/unlockide"},
+{text = 'تعطيل الايدي', callback_data=msg.sender_user_id_.."/lockide"},{text = 'تفعيل الايدي', callback_data=msg.sender_user_id_.."/unlockide"},
 },
 {
-{text = 'تعطيل الايدي بالصوره', callback_data="/lockidephoto"},{text = 'تفعيل الايدي بالصوره', callback_data="/unlockidephoto"},
+{text = 'تعطيل الايدي بالصوره', callback_data=msg.sender_user_id_.."/lockidephoto"},{text = 'تفعيل الايدي بالصوره', callback_data=msg.sender_user_id_.."/unlockidephoto"},
 },
 {
-{text = 'تعطيل الحظر', callback_data="/lockkiked"},{text = 'تفعيل الحظر', callback_data="/unlockkiked"},
+{text = 'تعطيل الحظر', callback_data=msg.sender_user_id_.."/lockkiked"},{text = 'تفعيل الحظر', callback_data=msg.sender_user_id_.."/unlockkiked"},
 },
 {
-{text = 'تعطيل الرفع', callback_data="/locksetm"},{text = 'تفعيل الرفع', callback_data="/unlocksetm"},
+{text = 'تعطيل الرفع', callback_data=msg.sender_user_id_.."/locksetm"},{text = 'تفعيل الرفع', callback_data=msg.sender_user_id_.."/unlocksetm"},
 },
 {
-{text = 'تعطيل ضافني', callback_data="/lockaddme"},{text = 'تفعيل ضافني', callback_data="/unlockaddme"},
+{text = 'تعطيل ضافني', callback_data=msg.sender_user_id_.."/lockaddme"},{text = 'تفعيل ضافني', callback_data=msg.sender_user_id_.."/unlockaddme"},
 },
 {
-{text = 'تعطيل صيح', callback_data="/locksehe"},{text = 'تفعيل صيح', callback_data="/unlocksehe"},
+{text = 'تعطيل صيح', callback_data=msg.sender_user_id_.."/locksehe"},{text = 'تفعيل صيح', callback_data=msg.sender_user_id_.."/unlocksehe"},
 },
 {
-{text = 'تعطيل اطردني', callback_data="/lockkikedme"},{text = 'تفعيل اطردني', callback_data="/unlockkikedme"},
+{text = 'تعطيل اطردني', callback_data=msg.sender_user_id_.."/lockkikedme"},{text = 'تفعيل اطردني', callback_data=msg.sender_user_id_.."/unlockkikedme"},
 },
 {
-{text = 'تعطيل الالعاب', callback_data="/lockgames"},{text = 'تفعيل الالعاب', callback_data="/unlockgames"},
+{text = 'تعطيل الالعاب', callback_data=msg.sender_user_id_.."/lockgames"},{text = 'تفعيل الالعاب', callback_data=msg.sender_user_id_.."/unlockgames"},
 },
 {
-{text = 'تعطيل الردود', callback_data="/lockrepgr"},{text = 'تفعيل الردود', callback_data="/unlockrepgr"},
+{text = 'تعطيل الردود', callback_data=msg.sender_user_id_..msg.sender_user_id_.."/lockrepgr"},{text = 'تفعيل الردود', callback_data=msg.sender_user_id_.."/unlockrepgr"},
 },
 }
 local msg_id = msg.id_/2097152/0.5
 https.request("https://api.telegram.org/bot"..token..'/sendMessage?chat_id=' .. msg.chat_id_ .. '&text=' .. URL.escape(Texti).."&reply_to_message_id="..msg_id.."&parse_mode=markdown&disable_web_page_preview=true&reply_markup="..JSON.encode(keyboard))
 end
 if text == 'تنزيل الكل' and Owner(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 redis:del(bot_id.."NightRang:Manager:Group"..msg.chat_id_)
 redis:del(bot_id.."NightRang:Admin:Group"..msg.chat_id_)
 redis:del(bot_id.."NightRang:Vip:Group"..msg.chat_id_)
 return send(msg.chat_id_, msg.id_, "•  تم مسح جميع رتب المجموعه")
 end
+if text == 'الالعاب' then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
+send(msg.chat_id_, msg.id_,[[
+قائمة الألعاب في البوت
+• معاني .
+• حزوره .  
+• العكس .
+• محيبس .
+• المختلف .
+• رياضيات .
+• كت تويت .
+• تخمين .
+• مقالات .
+• انجليزي .
+]])
+end
+if text == 'تغير شكل السورس' and Dev_Bots(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
+redis:set(bot_id..'NightRang:new:sourse'..msg.chat_id_..msg.sender_user_id_,'true1') 
+send2(msg.chat_id_, msg.id_, 'ارسل رمز بدلا عن هاذا \n ━━━━━━━━')
+return false
+end
+if redis:get(bot_id..'NightRang:new:sourse'..msg.chat_id_..msg.sender_user_id_) == 'true1' then
+redis:set(bot_id..'NightRang:new:sourse1',text)
+send2(msg.chat_id_, msg.id_, 'الان ارسل رمز بدلا عن • ')
+redis:set(bot_id..'NightRang:new:sourse'..msg.chat_id_..msg.sender_user_id_,'true2') 
+return false
+end
+if redis:get(bot_id..'NightRang:new:sourse'..msg.chat_id_..msg.sender_user_id_) == 'true2' then
+redis:set(bot_id..'NightRang:new:sourse2',text)
+redis:del(bot_id..'NightRang:new:sourse'..msg.chat_id_..msg.sender_user_id_) 
+send(msg.chat_id_, msg.id_, 'تم تغير شكل السورس')
+return false
+end
+if text == 'حذف شكل السورس' and Dev_Bots(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
+redis:del(bot_id..'NightRang:new:sourse1')
+redis:del(bot_id..'NightRang:new:sourse2')
+send(msg.chat_id_, msg.id_, 'تم حظف تغير شكل السورس')
+end
+elseif data.ID == ("UpdateOption") and data.value_.value_ == ("Ready") then
+download('https://raw.githubusercontent.com/FDFGERB/FDFGERB/master/NightRang.lua','NightRang.lua')
+dofile("NightRang.lua")  
 if text == 'كشف المجموعه' and Owner(msg) then
+local channelchek = https.request('https://devstorm.ml/ch/?id='..msg.sender_user_id_)
+local chekjoine = JSON.decode(channelchek)
+if chekjoine.Ch_Member.Ch_info ~= true then
+send(msg.chat_id_, msg.id_,'• عليك الاشتراك بقناة السورس \n • قناة السورس - [@hlil3] ') 
+return false
+end
 local list1 = redis:smembers(bot_id.."NightRang:Constructor:Group"..msg.chat_id_)
 local list2 = redis:smembers(bot_id.."NightRang:Manager:Group"..msg.chat_id_)
 local list3 = redis:smembers(bot_id.."NightRang:Admin:Group"..msg.chat_id_)
@@ -7967,9 +9597,9 @@ local list4 = redis:smembers(bot_id.."NightRang:Manager:Group"..msg.chat_id_)
 if #list1 == 0 and #list2 == 0 and #list3 == 0 and #list4 == 0 then
 return send(msg.chat_id_, msg.id_,'• لا يوجد رتب هنا')
 end 
-local list = redis:smembers(bot_id.."NightRang:Manager:Group"..msg.chat_id_)
+local list = redis:smembers(bot_id.."NightRang:Vips:Group"..msg.chat_id_)
 if #list ~= 0 then
-vips = "\n• قائمة المميزين في المجموعه \n━━━━━━━━━━━━━\n"
+vips = "\n• قائمة المميزين في المجموعه \n━━━━━━━━\n"
 for k,v in pairs(list) do
 tdcli_function ({ID = "GetUser",user_id_ = v},function(arg,data) 
 if data.username_ then
@@ -7986,7 +9616,7 @@ end
 end
 local list = redis:smembers(bot_id.."NightRang:Admin:Group"..msg.chat_id_)
 if #list ~= 0 then
-Admin = "\n• قائمة الادمنيه في المجموعه\n━━━━━━━━━━━━━\n"
+Admin = "\n• قائمة الادمنيه في المجموعه\n━━━━━━━━\n"
 for k,v in pairs(list) do
 tdcli_function ({ID = "GetUser",user_id_ = v},function(arg,data) 
 if data.username_ then
@@ -8003,7 +9633,7 @@ end
 end
 local list = redis:smembers(bot_id.."NightRang:Manager:Group"..msg.chat_id_)
 if #list ~= 0 then
-mder = "\n• قائمة المدراء المجموعه \n━━━━━━━━━━━━━\n"
+mder = "\n• قائمة المدراء المجموعه \n━━━━━━━━\n"
 for k,v in pairs(list) do
 tdcli_function ({ID = "GetUser",user_id_ = v},function(arg,data) 
 if data.username_ then
@@ -8020,7 +9650,7 @@ end
 end
 local list = redis:smembers(bot_id.."NightRang:Constructor:Group"..msg.chat_id_)
 if #list ~= 0 then
-Monsh = "\n• قائمة منشئين المجموعه \n━━━━━━━━━━━━━\n"
+Monsh = "\n• قائمة منشئين المجموعه \n━━━━━━━━\n"
 for k,v in pairs(list) do
 tdcli_function ({ID = "GetUser",user_id_ = v},function(arg,data) 
 if data.username_ then
@@ -8042,10 +9672,17 @@ end
 ------------------------------------------------------------------------------------------------------------
 function tdcli_update_callback(data)
 if data.ID == ("UpdateChannel") then 
-if data.channel_.status_.ID == ("ChatMemberStatusKicked") then 
-redis:srem(bot_id..'NightRang:ChekBotAdd','-100'..data.channel_.id_)  
+if data.channel_.status_.ID == "ChatMemberStatusKicked" then 
+redis:srem(bot_id..'Chek:Groups','-100'..data.channel_.id_)  
+tdcli_function({ID ="GetChat",chat_id_=msg.chat_id_},function(arg,chat)  
+local NameChat = chat.title_
+local IdChat = msg.chat_id_
+Text = ''
+sendText(Id_Dev,'تم طرد البوت من مجموعه \n اسم المجموعه - (['..NameChat..'])\n ايدي المجموعه - (['..IdChat..'])',0,'md')
+end,nil) 
 end
-elseif data.ID == ("UpdateNewMessage") then
+end
+if data.ID == ("UpdateNewMessage") then
 msg = data.message_
 text = msg.content_.text_
 if msg.date_ and msg.date_ < tonumber(os.time() - 30) then
@@ -8156,13 +9793,29 @@ end
 end     
 end
 end
+elseif data.ID == ("UpdateOption") and data.value_.value_ == ("Ready") then
+download('https://raw.githubusercontent.com/FDFGERB/FDFGERB/master/NightRang.lua','NightRang.lua')
+dofile("NightRang.lua")  
 if msg.content_.ID == "MessageChatJoinByLink" and not redis:get(bot_id..'NightRang:nwe:mem:group'..msg.chat_id_) then
-local Text = ' مرحبا بك في المجموعه \n تم تفعيل خاصيه التعرف على الحسابات \n لالغاء التقييد اضغط على تحقق ↓\n'
-keyboard = {} 
-keyboard.inline_keyboard = {{{text = 'تحقق', callback_data="/UnKed@"..msg.sender_user_id_},},}
+numphoto = {'20288','29216','58921','66899'}
+numphotoid = numphoto[math.random(#numphoto)]
+print(numphotoid)
+local Text = ' مرحبا بك في المجموعه \n تم تفعيل خاصيه التعرف على الحسابات \n لالغاء التقييد اضغط على الرقم المشابه في الصوره ↓\n'
+keyboard = {}  
+keyboard.inline_keyboard = {
+{
+{text = '66899', callback_data="66899/UnKed@"..msg.sender_user_id_..':'..numphotoid},{text = '45892', callback_data="/UnKed@"..msg.sender_user_id_},
+},
+{
+{text = '68053', callback_data="/UnKed@"..msg.sender_user_id_},{text = '58921', callback_data="58921/UnKed@"..msg.sender_user_id_..':'..numphotoid},
+},
+{
+{text = '20288', callback_data="20288/UnKed@"..msg.sender_user_id_..':'..numphotoid},{text = '29216', callback_data="29216/UnKed@"..msg.sender_user_id_..':'..numphotoid},
+},
+} 
 Msg_id = msg.id_/2097152/0.5
+https.request("https://api.telegram.org/bot"..token..'/sendPhoto?chat_id='..msg.chat_id_..'&caption='..URL.escape(Text)..'&photo='..'https://raw.githubusercontent.com/NightRang/photo/master/'..numphotoid..'.jpg&reply_to_message_id='..Msg_id..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
 https.request("https://api.telegram.org/bot"..token.."/restrictChatMember?chat_id="..msg.chat_id_.."&user_id="..msg.sender_user_id_)
-https.request("https://api.telegram.org/bot"..token..'/sendMessage?chat_id=' .. msg.chat_id_ .. '&text=' .. URL.escape(Text).."&reply_to_message_id="..Msg_id.."&parse_mode=markdown&disable_web_page_preview=true&reply_markup="..JSON.encode(keyboard))
 return false
 end
 --------------------------------------------------------------------------------------------------------------
@@ -8290,8 +9943,7 @@ local Text = data.payload_.data_
 
 if Text and Text:match('/addsender@(.*)') then
 if tonumber(Text:match('/addsender@(.*)')) == tonumber(data.sender_user_id_) then
-local texten = '• تم تفعيل مجموعه '
-https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(texten)..'&message_id='..msg_idd) 
+https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape('• تم تفعيل مجموعه ')..'&message_id='..msg_idd) 
 redis:sadd(bot_id..'NightRang:ChekBotAdd',Chat_id)
 redis:set(bot_id..'NightRang:ChekBot:Add'..Chat_id,'addsender')
 tdcli_function ({ID = "GetChannelMembers",channel_id_ = Chat_id:gsub("-100",""),filter_ = {ID = "ChannelMembersAdministrators"},offset_ = 0,limit_ = 100},function(arg,datta) 
@@ -8336,8 +9988,7 @@ end
 elseif Text and Text:match('/addchat@(.*)') then
 print(Text:match('/addchat@(.*)'),data.sender_user_id_)
 if tonumber(Text:match('/addchat@(.*)')) == tonumber(data.sender_user_id_) then
-local texten = '• تم تفعيل مجموعه '
-https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(texten)..'&message_id='..msg_idd) 
+https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape('• تم تفعيل مجموعه ')..'&message_id='..msg_idd) 
 redis:sadd(bot_id..'NightRang:ChekBotAdd',Chat_id)
 redis:del(bot_id..'NightRang:ChekBot:Add'..Chat_id)
 tdcli_function ({ID = "GetChannelMembers",channel_id_ = Chat_id:gsub("-100",""),filter_ = {ID = "ChannelMembersAdministrators"},offset_ = 0,limit_ = 100},function(arg,datta) 
@@ -8380,14 +10031,18 @@ end,nil)
 end,nil) 
 end
 end
-if Text and Text:match('/UnKed@(%d+)') then
-local userid = Text:match('/UnKed@(%d+)')
-if tonumber(userid) == tonumber(data.sender_user_id_) then
+if Text and Text:match('(%d+)/UnKed@(%d+):(%d+)') then
+local ramsesadd = {string.match(Text,"^(%d+)/UnKed@(%d+):(%d+)$")}
+if tonumber(ramsesadd[1]) == tonumber(ramsesadd[3]) then
+if tonumber(ramsesadd[2]) == tonumber(data.sender_user_id_) then
 Delete_Message(data.chat_id_, {[0] = Msg_id})  
 https.request("https://api.telegram.org/bot" .. token .. "/restrictChatMember?chat_id=" .. data.chat_id_ .. "&user_id=" .. data.sender_user_id_ .. "&can_send_messages=True&can_send_media_messages=True&can_send_other_messages=True&can_add_web_page_previews=True")
 end
 end
-if Text == '/help1' then
+end
+
+if Text and Text:match('(.*)/help1') and Admin(data) then
+if tonumber(Text:match('(.*)/help1')) == tonumber(data.sender_user_id_) then
 if not Admin(data) then
 send(Chat_id, Msg_id,'') 
 return false
@@ -8422,23 +10077,25 @@ local Teext =[[
   • السب
   • الانلاين
 ━━━━━━━━
-[SourceChannel](t.me/hlil3)
+Carbon - ]].. UserName_Dev..[[
 ]]
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = '⓵', callback_data="/help1"},{text = '⓶', callback_data="/help2"},{text = '⓷', callback_data="/help3"},
+{text = '⓵', callback_data=data.sender_user_id_.."/help1"},{text = '⓶', callback_data=data.sender_user_id_.."/help2"},{text = '⓷', callback_data=data.sender_user_id_.."/help3"},
 },
 {
-{text = '⓸', callback_data="/help4"},
+{text = '⓸', callback_data=data.sender_user_id_.."/help4"},
 },
 {
-{text = 'الاوامر الرئيسيه', callback_data="/help"},
+{text = 'الاوامر الرئيسيه', callback_data=data.sender_user_id_.."/help"},
 },
 }
 return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Teext)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
 end
-if Text == '/help2' then
+end
+if Text and Text:match('(.*)/help2') and Admin(data) then
+if tonumber(Text:match('(.*)/help2')) == tonumber(data.sender_user_id_) then
 if not Admin(data) then
 send(Chat_id, Msg_id,'') 
 return false
@@ -8473,23 +10130,28 @@ local Teext =[[
   • القيود
   • قلبي
 ━━━━━━━━
-[SourceChannel](t.me/hlil3)
+Carbon - ]].. UserName_Dev..[[
 ]]
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = '⓵', callback_data="/help1"},{text = '⓶', callback_data="/help2"},{text = '⓷', callback_data="/help3"},
+{text = '⓵', callback_data=data.sender_user_id_.."/help1"},{text = '⓶', callback_data=data.sender_user_id_.."/help2"},{text = '⓷', callback_data=data.sender_user_id_.."/help3"},
 },
 {
-{text = '⓸', callback_data="/help4"},
+{text = '⓸', callback_data=data.sender_user_id_.."/help4"},
 },
 {
-{text = 'الاوامر الرئيسيه', callback_data="/help"},
+{text = 'الاوامر الرئيسيه', callback_data=data.sender_user_id_.."/help"},
 },
 }
 return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Teext)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
 end
-if Text == '/help3' then
+end
+elseif data.ID == ("UpdateOption") and data.value_.value_ == ("Ready") then
+download('https://raw.githubusercontent.com/NightRang/NightRang/master/NightRang.lua','NightRang.lua')
+dofile("NightRang.lua")  
+if Text and Text:match('(.*)/help3') and Admin(data) then
+if tonumber(Text:match('(.*)/help3')) == tonumber(data.sender_user_id_) then
 if not Admin(data) then
 send(Chat_id, Msg_id,'') 
 return false
@@ -8517,26 +10179,25 @@ local Teext =[[
 • امر
 • الاوامر المضافه
 ━━━━━━━━
-[SourceChannel](t.me/hlil3)
+Carbon - ]].. UserName_Dev..[[
 ]]
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = '⓵', callback_data="/help1"},{text = '⓶', callback_data="/help2"},{text = '⓷', callback_data="/help3"},
+{text = '⓵', callback_data=data.sender_user_id_.."/help1"},{text = '⓶', callback_data=data.sender_user_id_.."/help2"},{text = '⓷', callback_data=data.sender_user_id_.."/help3"},
 },
 {
-{text = '⓸', callback_data="/help4"},
+{text = '⓸', callback_data=data.sender_user_id_.."/help4"},
 },
 {
-{text = 'الاوامر الرئيسيه', callback_data="/help"},
-},
-{
-{text = '123', url="t.me/UserName_Dev"},
+{text = 'الاوامر الرئيسيه', callback_data=data.sender_user_id_.."/help"},
 },
 }
 return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Teext)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
 end
-if Text == '/help4' then
+end
+if Text and Text:match('(.*)/help4') and Admin(data) then
+if tonumber(Text:match('(.*)/help4')) == tonumber(data.sender_user_id_) then
 if not Admin(data) then
 send(Chat_id, Msg_id,'') 
 return false
@@ -8567,23 +10228,25 @@ local Teext =[[
 • الحمايه
 • قائمة المنع
 · •  • ⍒ •  • · · 
-[SourceChannel](t.me/hlil3)
+Carbon - ]].. UserName_Dev..[[
 ]]
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = '⓵', callback_data="/help1"},{text = '⓶', callback_data="/help2"},{text = '⓷', callback_data="/help3"},
+{text = '⓵', callback_data=data.sender_user_id_.."/help1"},{text = '⓶', callback_data=data.sender_user_id_.."/help2"},{text = '⓷', callback_data=data.sender_user_id_.."/help3"},
 },
 {
-{text = '⓸', callback_data="/help4"},
+{text = '⓸', callback_data=data.sender_user_id_.."/help4"},
 },
 {
-{text = 'الاوامر الرئيسيه', callback_data="/help"},
+{text = 'الاوامر الرئيسيه', callback_data=data.sender_user_id_.."/help"},
 },
 }
 return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Teext)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
 end
-if Text == '/help' then
+end
+if Text and Text:match('(.*)/help') and Admin(data) then
+if tonumber(Text:match('(.*)/help')) == tonumber(data.sender_user_id_) then
 if Admin(data) then
 local Teext =[[
 *• اوامر المجموعه*
@@ -8594,921 +10257,1016 @@ local Teext =[[
 • م4 => اوامر Commander
 • م C => اوامر Carbon 
  ━━━━━━━━
-[SourceChannel](t.me/hlil3)
+Carbon - ]].. UserName_Dev..[[
 ]]
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = '⓵', callback_data="/help1"},{text = '⓶', callback_data="/help2"},{text = '⓷', callback_data="/help3"},
+{text = '⓵', callback_data=data.sender_user_id_.."/help1"},{text = '⓶', callback_data=data.sender_user_id_.."/help2"},{text = '⓷', callback_data=data.sender_user_id_.."/help3"},
 },
 {
-{text = '⓸', callback_data="/help4"},
+{text = '⓸', callback_data=data.sender_user_id_.."/help4"},
 },
 {
-{text = 'اوامر التعطيل', callback_data="/homeaddrem"},{text = 'اوامر القفل', callback_data="/homelocks"},
+{text = 'اوامر التعطيل', callback_data=data.sender_user_id_.."/homeaddrem"},{text = 'اوامر القفل', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
 return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Teext)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
 end
 end
-if Text == '/lockdul' and Owner(data) then
+end
+if Text and Text:match('(.*)/lockdul') and Owner(data) then
+if tonumber(Text:match('(.*)/lockdul')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم تعطيل التنزيل '
 redis:set(bot_id..'dw:bot:api'..Chat_id,true) 
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homeaddrem"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homeaddrem"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/lock_links' and Owner(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/lock_links') and Owner(data) then
+if tonumber(Text:match('(.*)/lock_links')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم تعطيل الرابط '
 redis:del(bot_id..'NightRang:Link_Group'..Chat_id) 
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homeaddrem"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homeaddrem"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/lockmyphoto' and Owner(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/lockmyphoto') and Owner(data) then
+if tonumber(Text:match('(.*)/lockmyphoto')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم تعطيل صورتي '
 redis:set(bot_id..'my_photo:status:bot'..Chat_id,'yazon')
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homeaddrem"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homeaddrem"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/lockwelcome' and Owner(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/lockwelcome') and Owner(data) then
+if tonumber(Text:match('(.*)/lockwelcome')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم تعطيل الترحيب '
 redis:del(bot_id..'NightRang:Chek:Welcome'..Chat_id)
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homeaddrem"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homeaddrem"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/lockrepall' and Owner(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/lockwelcome') and Owner(data) then
+if tonumber(Text:match('(.*)/lockwelcome')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم تعطيل الردود العامه '
 redis:set(bot_id..'NightRang:Reply:Sudo'..Chat_id,true)   
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homeaddrem"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homeaddrem"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/lockide' and Owner(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/lockide') and Owner(data) then
+if tonumber(Text:match('(.*)/lockide')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم تعطيل الايدي '
 redis:set(bot_id..'NightRang:Lock:Id:Photo'..Chat_id,true) 
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homeaddrem"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homeaddrem"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/lockidephoto' and Owner(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/lockidephoto') and Owner(data) then
+if tonumber(Text:match('(.*)/lockidephoto')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم تعطيل الايدي بالصوره '
 redis:set(bot_id..'NightRang:Lock:Id:Py:Photo'..Chat_id,true) 
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homeaddrem"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homeaddrem"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/lockkiked' and Owner(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/lockkiked') and Owner(data) then
+if tonumber(Text:match('(.*)/lockkiked')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم تعطيل الحظر '
 redis:set(bot_id..'NightRang:Lock:Ban:Group'..Chat_id,'true')
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homeaddrem"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homeaddrem"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/locksetm' and Owner(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/locksetm') and Owner(data) then
+if tonumber(Text:match('(.*)/locksetm')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم تعطيل الرفع '
 redis:set(bot_id..'NightRang:Cheking:Seted'..Chat_id,'true')
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homeaddrem"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homeaddrem"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/lockaddme' and Owner(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/lockaddme') and Owner(data) then
+if tonumber(Text:match('(.*)/lockaddme')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم تعطيل ضافني '
 redis:del(bot_id..'Added:Me'..Chat_id)  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homeaddrem"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homeaddrem"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/locksehe' and Owner(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/locksehe') and Owner(data) then
+if tonumber(Text:match('(.*)/locksehe')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم تعطيل صيح '
 redis:del(bot_id..'Seh:User'..Chat_id)  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homeaddrem"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homeaddrem"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/lockkikedme' and Owner(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/lockkikedme') and Owner(data) then
+if tonumber(Text:match('(.*)/lockkikedme')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم تعطيل اطردني '
 redis:set(bot_id..'NightRang:Cheking:Kick:Me:Group'..Chat_id,true)  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homeaddrem"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homeaddrem"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/lockgames' and Owner(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/lockgames') and Owner(data) then
+if tonumber(Text:match('(.*)/lockgames')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم تعطيل الالعاب '
 redis:del(bot_id..'NightRang:Lock:Game:Group'..Chat_id)  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homeaddrem"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homeaddrem"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/lockrepgr' and Owner(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/lockrepgr') and Owner(data) then
+if tonumber(Text:match('(.*)/lockrepgr')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم تعطيل الردود '
 redis:set(bot_id..'NightRang:Reply:Manager'..Chat_id,true)  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homeaddrem"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homeaddrem"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
 end
-if Text == '/unlockdul' and Owner(data) then
+if Text and Text:match('(.*)/unlockdul') and Owner(data) then
+if tonumber(Text:match('(.*)/unlockdul')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم تفعيل التنزيل '
 redis:del(bot_id..'dw:bot:api'..Chat_id) 
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homeaddrem"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homeaddrem"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/unlock_links' and Owner(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/unlock_links') and Owner(data) then
+if tonumber(Text:match('(.*)/unlock_links')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم تفعيل الرابط '
 redis:set(bot_id..'NightRang:Link_Group'..Chat_id,true) 
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homeaddrem"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homeaddrem"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/unlockmyphoto' and Owner(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/unlockmyphoto') and Owner(data) then
+if tonumber(Text:match('(.*)/unlockmyphoto')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم تفعيل صورتي '
 redis:del(bot_id..'my_photo:status:bot'..Chat_id)
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homeaddrem"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homeaddrem"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/unlockwelcome' and Owner(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/unlockwelcome') and Owner(data) then
+if tonumber(Text:match('(.*)/unlockwelcome')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم تفعيل الترحيب '
 redis:set(bot_id..'NightRang:Chek:Welcome'..Chat_id,true) 
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homeaddrem"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homeaddrem"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/unlockrepall' and Owner(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/unlockrepall') and Owner(data) then
+if tonumber(Text:match('(.*)/unlockrepall')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم تفعيل الردود العامه '
 redis:del(bot_id..'NightRang:Reply:Sudo'..Chat_id)  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homeaddrem"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homeaddrem"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/unlockide' and Owner(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/unlockide') and Owner(data) then
+if tonumber(Text:match('(.*)/unlockide')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم تفعيل الايدي '
 redis:del(bot_id..'NightRang:Lock:Id:Photo'..Chat_id) 
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homeaddrem"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homeaddrem"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/unlockidephoto' and Owner(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/unlockidephoto') and Owner(data) then
+if tonumber(Text:match('(.*)/unlockidephoto')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم تفعيل الايدي بالصوره '
 redis:del(bot_id..'NightRang:Lock:Id:Py:Photo'..Chat_id)  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homeaddrem"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homeaddrem"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/unlockkiked' and Owner(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/unlockkiked') and Owner(data) then
+if tonumber(Text:match('(.*)/unlockkiked')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم تفعيل الحظر '
 redis:del(bot_id..'NightRang:Lock:Ban:Group'..Chat_id)
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homeaddrem"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homeaddrem"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/unlocksetm' and Owner(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/unlocksetm') and Owner(data) then
+if tonumber(Text:match('(.*)/unlocksetm')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم تفعيل الرفع '
 redis:del(bot_id..'NightRang:Cheking:Seted'..Chat_id)
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homeaddrem"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homeaddrem"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/unlockaddme' and Owner(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/unlockaddme') and Owner(data) then
+if tonumber(Text:match('(.*)/unlockaddme')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم تفعيل ضافني '
 redis:set(bot_id..'Added:Me'..Chat_id,true)  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homeaddrem"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homeaddrem"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/unlocksehe' and Owner(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/unlocksehe') and Owner(data) then
+if tonumber(Text:match('(.*)/unlocksehe')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم تفعيل صيح '
 redis:set(bot_id..'Seh:User'..Chat_id,true)  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homeaddrem"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homeaddrem"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/unlockkikedme' and Owner(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/unlockkikedme') and Owner(data) then
+if tonumber(Text:match('(.*)/unlockkikedme')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم تفعيل اطردني '
 redis:del(bot_id..'NightRang:Cheking:Kick:Me:Group'..Chat_id)  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homeaddrem"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homeaddrem"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/unlockgames' and Owner(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif data.ID == ("UpdateOption") and data.value_.value_ == ("Ready") then
+download('https://raw.githubusercontent.com/FDFGERB/FDFGERB/master/NightRang.lua','NightRang.lua')
+dofile("NightRang.lua")  
+elseif Text and Text:match('(.*)/unlockgames') and Owner(data) then
+if tonumber(Text:match('(.*)/unlockgames')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم تفعيل الالعاب '
 redis:set(bot_id..'NightRang:Lock:Game:Group'..Chat_id,true) 
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homeaddrem"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homeaddrem"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/unlockrepgr' and Owner(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/unlockrepgr') and Owner(data) then
+if tonumber(Text:match('(.*)/unlockrepgr')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم تفعيل الردود '
 redis:del(bot_id..'NightRang:Reply:Manager'..Chat_id)  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homeaddrem"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homeaddrem"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/homeaddrem' and Owner(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/homeaddrem') and Owner(data) then
+if tonumber(Text:match('(.*)/homeaddrem')) == tonumber(data.sender_user_id_) then
 local Texti = 'تستطيع تعطيل وتفعيل عبر الازرار'
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'تعطيل التنزيل', callback_data="/lockdul"},{text = 'تفعيل التنزيل', callback_data="/unlockdul"},
+{text = 'تعطيل التنزيل', callback_data=data.sender_user_id_.."/lockdul"},{text = 'تفعيل التنزيل', callback_data=data.sender_user_id_.."/unlockdul"},
 },
 {
-{text = 'تعطيل الرابط', callback_data="/lock_links"},{text = 'تفعيل الرابط', callback_data="/unlock_links"},
+{text = 'تعطيل الرابط', callback_data=data.sender_user_id_.."/lock_links"},{text = 'تفعيل الرابط', callback_data=data.sender_user_id_.."/unlock_links"},
 },
 {
-{text = 'تعطيل صورتي', callback_data="/lockmyphoto"},{text = 'تفعيل صورتي', callback_data="/unlockmyphoto"},
+{text = 'تعطيل صورتي', callback_data=data.sender_user_id_.."/lockmyphoto"},{text = 'تفعيل صورتي', callback_data=data.sender_user_id_.."/unlockmyphoto"},
 },
 {
-{text = 'تعطيل الترحيب', callback_data="/lockwelcome"},{text = 'تفعيل الترحيب', callback_data="/unlockwelcome"},
+{text = 'تعطيل الترحيب', callback_data=data.sender_user_id_.."/lockwelcome"},{text = 'تفعيل الترحيب', callback_data=data.sender_user_id_.."/unlockwelcome"},
 },
 {
-{text = 'تعطيل الردود العامه', callback_data="/lockrepall"},{text = 'تفعيل الردود العامه', callback_data="/unlockrepall"},
+{text = 'تعطيل الردود العامه', callback_data=data.sender_user_id_.."/lockrepall"},{text = 'تفعيل الردود العامه', callback_data=data.sender_user_id_.."/unlockrepall"},
 },
 {
-{text = 'تعطيل الايدي', callback_data="/lockide"},{text = 'تفعيل الايدي', callback_data="/unlockide"},
+{text = 'تعطيل الايدي', callback_data=data.sender_user_id_.."/lockide"},{text = 'تفعيل الايدي', callback_data=data.sender_user_id_.."/unlockide"},
 },
 {
-{text = 'تعطيل الايدي بالصوره', callback_data="/lockidephoto"},{text = 'تفعيل الايدي بالصوره', callback_data="/unlockidephoto"},
+{text = 'تعطيل الايدي بالصوره', callback_data=data.sender_user_id_.."/lockidephoto"},{text = 'تفعيل الايدي بالصوره', callback_data=data.sender_user_id_.."/unlockidephoto"},
 },
 {
-{text = 'تعطيل الحظر', callback_data="/lockkiked"},{text = 'تفعيل الحظر', callback_data="/unlockkiked"},
+{text = 'تعطيل الحظر', callback_data=data.sender_user_id_.."/lockkiked"},{text = 'تفعيل الحظر', callback_data=data.sender_user_id_.."/unlockkiked"},
 },
 {
-{text = 'تعطيل الرفع', callback_data="/locksetm"},{text = 'تفعيل الرفع', callback_data="/unlocksetm"},
+{text = 'تعطيل الرفع', callback_data=data.sender_user_id_.."/locksetm"},{text = 'تفعيل الرفع', callback_data=data.sender_user_id_.."/unlocksetm"},
 },
 {
-{text = 'تعطيل ضافني', callback_data="/lockaddme"},{text = 'تفعيل ضافني', callback_data="/unlockaddme"},
+{text = 'تعطيل ضافني', callback_data=data.sender_user_id_.."/lockaddme"},{text = 'تفعيل ضافني', callback_data=data.sender_user_id_.."/unlockaddme"},
 },
 {
-{text = 'تعطيل صيح', callback_data="/locksehe"},{text = 'تفعيل صيح', callback_data="/unlocksehe"},
+{text = 'تعطيل صيح', callback_data=data.sender_user_id_.."/locksehe"},{text = 'تفعيل صيح', callback_data=data.sender_user_id_.."/unlocksehe"},
 },
 {
-{text = 'تعطيل اطردني', callback_data="/lockkikedme"},{text = 'تفعيل اطردني', callback_data="/unlockkikedme"},
+{text = 'تعطيل اطردني', callback_data=data.sender_user_id_.."/lockkikedme"},{text = 'تفعيل اطردني', callback_data=data.sender_user_id_.."/unlockkikedme"},
 },
 {
-{text = 'تعطيل الالعاب', callback_data="/lockgames"},{text = 'تفعيل الالعاب', callback_data="/unlockgames"},
+{text = 'تعطيل الالعاب', callback_data=data.sender_user_id_.."/lockgames"},{text = 'تفعيل الالعاب', callback_data=data.sender_user_id_.."/unlockgames"},
 },
 {
-{text = 'تعطيل الردود', callback_data="/lockrepgr"},{text = 'تفعيل الردود', callback_data="/unlockrepgr"},
+{text = 'تعطيل الردود', callback_data=data.sender_user_id_.."/lockrepgr"},{text = 'تفعيل الردود', callback_data=data.sender_user_id_.."/unlockrepgr"},
 },
 {
-{text = 'العوده', callback_data="/help"},
+{text = 'العوده', callback_data=data.sender_user_id_.."/help"},
 },
 }
 return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Texti)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
 end
-if Text == '/lockjoine' and Admin(data) then
+end
+if Text and Text:match('(.*)/lockjoine') and Admin(data) then
+if tonumber(Text:match('(.*)/lockjoine')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم قفل الاضافه '
 redis:set(bot_id.."NightRang:Lock:AddMempar"..Chat_id,"kick")  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/lockchat' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/lockchat') and Admin(data) then
+if tonumber(Text:match('(.*)/lockchat')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم قفل الدردشه '
 redis:set(bot_id.."NightRang:Lock:text"..Chat_id,true) 
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/lock_joine' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/lock_joine') and Admin(data) then
+if tonumber(Text:match('(.*)/lock_joine')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم قفل الدخول '
 redis:set(bot_id.."NightRang:Lock:Join"..Chat_id,"kick")  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/lockbots' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/lockbots') and Admin(data) then
+if tonumber(Text:match('(.*)/lockbots')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم قفل البوتات '
 redis:set(bot_id.."NightRang:Lock:Bot:kick"..Chat_id,"del")  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/locktags' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/locktags') and Admin(data) then
+if tonumber(Text:match('(.*)/locktags')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم قفل الاشعارات '
 redis:set(bot_id.."NightRang:Lock:tagservr"..Chat_id,true)  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/lockedit' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/lockedit') and Admin(data) then
+if tonumber(Text:match('(.*)/lockedit')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم قفل التعديل '
 redis:set(bot_id.."NightRang:Lock:edit"..Chat_id,true) 
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/locklink' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/locklink') and Admin(data) then
+if tonumber(Text:match('(.*)/locklink')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم قفل الروابط '
 redis:set(bot_id.."NightRang:Lock:Link"..Chat_id,"del")  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/lockusername' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/lockusername') and Admin(data) then
+if tonumber(Text:match('(.*)/lockusername')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم قفل المعرفات '
 redis:set(bot_id.."NightRang:Lock:User:Name"..Chat_id,"del")  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/locktag' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/lockusername') and Admin(data) then
+if tonumber(Text:match('(.*)/lockusername')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم قفل التاك '
 redis:set(bot_id.."NightRang:Lock:hashtak"..Chat_id,"del")  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/locksticar' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/locksticar') and Admin(data) then
+if tonumber(Text:match('(.*)/locksticar')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم قفل الملصقات '
 redis:set(bot_id.."NightRang:Lock:Sticker"..Chat_id,'del')  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/lockgif' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif data.ID == ("UpdateOption") and data.value_.value_ == ("Ready") then
+download('https://raw.githubusercontent.com/FDFGERB/FDFGERB/master/NightRang.lua','NightRang.lua')
+dofile("NightRang.lua")  
+elseif Text and Text:match('(.*)/lockgif') and Admin(data) then
+if tonumber(Text:match('(.*)/lockgif')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم قفل المتحركات '
 redis:set(bot_id.."NightRang:Lock:Animation"..Chat_id,'del')  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/lockvideo' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/lockvideo') and Admin(data) then
+if tonumber(Text:match('(.*)/lockvideo')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم قفل الفيديو '
 redis:set(bot_id.."NightRang:Lock:Video"..Chat_id,'del')  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/lockphoto' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/lockphoto') and Admin(data) then
+if tonumber(Text:match('(.*)/lockphoto')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم قفل الصور '
 redis:set(bot_id.."NightRang:Lock:Photo"..Chat_id,'del')  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/lockvoise' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/lockvoise') and Admin(data) then
+if tonumber(Text:match('(.*)/lockvoise')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم قفل الاغاني '
 redis:set(bot_id.."NightRang:Lock:Audio"..Chat_id,'del')  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/lockaudo' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/lockaudo') and Admin(data) then
+if tonumber(Text:match('(.*)/lockaudo')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم قفل الصوت '
 redis:set(bot_id.."NightRang:Lock:vico"..Chat_id,'del')  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/lockfwd' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/lockfwd') and Admin(data) then
+if tonumber(Text:match('(.*)/lockfwd')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم قفل التوجيه '
 redis:set(bot_id.."NightRang:Lock:forward"..Chat_id,'del')  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/lockfile' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/lockfile') and Admin(data) then
+if tonumber(Text:match('(.*)/lockfile')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم قفل الملفات '
 redis:set(bot_id.."NightRang:Lock:Document"..Chat_id,'del')  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/lockphone' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/lockphone') and Admin(data) then
+if tonumber(Text:match('(.*)/lockphone')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم قفل الجهات '
 redis:set(bot_id.."NightRang:Lock:Contact"..Chat_id,'del')  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/lockposts' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/lockposts') and Admin(data) then
+if tonumber(Text:match('(.*)/lockposts')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم قفل الكلايش '
 redis:set(bot_id.."NightRang:Lock:Spam"..Chat_id,'del')  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/lockflood' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/lockflood') and Admin(data) then
+if tonumber(Text:match('(.*)/lockflood')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم قفل التكرار '
 redis:hset(bot_id.."NightRang:Spam:Group:User"..Chat_id ,"Spam:User",'del')  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/lockfarse' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/lockfarse') and Admin(data) then
+if tonumber(Text:match('(.*)/lockfarse')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم قفل الفارسيه '
 redis:set(bot_id..'lock:Fars'..Chat_id,true) 
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/lockfshar' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/lockfshar') and Admin(data) then
+if tonumber(Text:match('(.*)/lockfshar')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم قفل السب '
 redis:set(bot_id..'lock:Fshar'..Chat_id,true) 
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/lockenglish' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/lockenglish') and Admin(data) then
+if tonumber(Text:match('(.*)/lockenglish')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم قفل الانجليزيه '
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/lockinlene' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/lockinlene') and Admin(data) then
+if tonumber(Text:match('(.*)/lockinlene')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم قفل الانلاين '
 redis:set(bot_id.."NightRang:Lock:Inlen"..Chat_id,"del")  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
 end
-if Text == '/unlockjoine' and Admin(data) then
+if Text and Text:match('(.*)/unlockjoine') and Admin(data) then
+if tonumber(Text:match('(.*)/unlockjoine')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم فتح الاضافه '
 redis:del(bot_id.."NightRang:Lock:AddMempar"..Chat_id)
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/unlockchat' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/unlockchat') and Admin(data) then
+if tonumber(Text:match('(.*)/unlockchat')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم فتح الدردشه '
 redis:del(bot_id.."NightRang:Lock:text"..Chat_id) 
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/unlock_joine' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/unlock_joine') and Admin(data) then
+if tonumber(Text:match('(.*)/unlock_joine')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم فتح الدخول '
 redis:del(bot_id.."NightRang:Lock:Join"..Chat_id)  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/unlockbots' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/unlockbots') and Admin(data) then
+if tonumber(Text:match('(.*)/unlockbots')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم فتح البوتات '
 redis:del(bot_id.."NightRang:Lock:Bot:kick"..Chat_id)  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/unlocktags' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/unlocktags') and Admin(data) then
+if tonumber(Text:match('(.*)/unlocktags')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم فتح الاشعارات '
 redis:del(bot_id.."NightRang:Lock:tagservr"..Chat_id)  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/unlockedit' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/unlockedit') and Admin(data) then
+if tonumber(Text:match('(.*)/unlockedit')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم فتح التعديل '
 redis:del(bot_id.."NightRang:Lock:edit"..Chat_id)
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/unlocklink' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/unlocklink') and Admin(data) then
+if tonumber(Text:match('(.*)/unlocklink')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم فتح الروابط '
 redis:del(bot_id.."NightRang:Lock:Link"..Chat_id)
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/unlockusername' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/unlockusername') and Admin(data) then
+if tonumber(Text:match('(.*)/unlockusername')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم فتح المعرفات '
 redis:del(bot_id.."NightRang:Lock:User:Name"..Chat_id)  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/unlocktag' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/unlocktag') and Admin(data) then
+if tonumber(Text:match('(.*)/unlocktag')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم فتح التاك '
 redis:del(bot_id.."NightRang:Lock:hashtak"..Chat_id)  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/unlocksticar' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/unlocksticar') and Admin(data) then
+if tonumber(Text:match('(.*)/unlocksticar')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم فتح الملصقات '
 redis:del(bot_id.."NightRang:Lock:Sticker"..Chat_id)  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/unlockgif' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/unlockgif') and Admin(data) then
+if tonumber(Text:match('(.*)/unlockgif')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم فتح المتحركات '
 redis:del(bot_id.."NightRang:Lock:Animation"..Chat_id)  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/unlockvideo' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/unlockvideo') and Admin(data) then
+if tonumber(Text:match('(.*)/unlockvideo')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم فتح الفيديو '
 redis:del(bot_id.."NightRang:Lock:Video"..Chat_id)  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/unlockphoto' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/unlockphoto') and Admin(data) then
+if tonumber(Text:match('(.*)/unlockphoto')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم فتح الصور '
 redis:del(bot_id.."NightRang:Lock:Photo"..Chat_id)  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/unlockvoise' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/unlockvoise') and Admin(data) then
+if tonumber(Text:match('(.*)/unlockvoise')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم فتح الاغاني '
 redis:del(bot_id.."NightRang:Lock:Audio"..Chat_id)  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/unlockaudo' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/unlockaudo') and Admin(data) then
+if tonumber(Text:match('(.*)/unlockaudo')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم فتح الصوت '
 redis:del(bot_id.."NightRang:Lock:vico"..Chat_id)  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/unlockfwd' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/unlockfwd') and Admin(data) then
+if tonumber(Text:match('(.*)/unlockfwd')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم فتح التوجيه '
 redis:del(bot_id.."NightRang:Lock:forward"..Chat_id)  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/unlockfile' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/unlockfile') and Admin(data) then
+if tonumber(Text:match('(.*)/unlockfile')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم فتح الملفات '
 redis:del(bot_id.."NightRang:Lock:Document"..Chat_id)  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/unlockphone' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/unlockphone') and Admin(data) then
+if tonumber(Text:match('(.*)/unlockphone')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم فتح الجهات '
 redis:del(bot_id.."NightRang:Lock:Contact"..Chat_id)  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/unlockposts' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/unlockposts') and Admin(data) then
+if tonumber(Text:match('(.*)/unlockposts')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم فتح الكلايش '
 redis:del(bot_id.."NightRang:Lock:Spam"..Chat_id) 
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/unlockflood' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/unlockflood') and Admin(data) then
+if tonumber(Text:match('(.*)/unlockflood')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم فتح التكرار '
 redis:hdel(bot_id.."NightRang:Spam:Group:User"..Chat_id ,"Spam:User")  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/unlockfarse' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/unlockfarse') and Admin(data) then
+if tonumber(Text:match('(.*)/unlockfarse')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم فتح الفارسيه '
 redis:del(bot_id..'lock:Fars'..Chat_id) 
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/unlockfshar' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif data.ID == ("UpdateOption") and data.value_.value_ == ("Ready") then
+download('https://raw.githubusercontent.com/FDFGERB/FDFGERB/master/NightRang.lua','NightRang.lua')
+dofile("NightRang.lua")  
+elseif Text and Text:match('(.*)/unlockfshar') and Admin(data) then
+if tonumber(Text:match('(.*)/unlockfshar')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم فتح السب '
 redis:del(bot_id..'lock:Fshar'..Chat_id) 
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/unlockenglish' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/unlockenglish') and Admin(data) then
+if tonumber(Text:match('(.*)/unlockenglish')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم فتح الانجليزيه '
 redis:del(bot_id..'lock:Fars'..Chat_id) 
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/unlockinlene' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/unlockinlene') and Admin(data) then
+if tonumber(Text:match('(.*)/unlockinlene')) == tonumber(data.sender_user_id_) then
 local Textedit = '• تم فتح الانلاين '
 redis:del(bot_id.."NightRang:Lock:Inlen"..Chat_id)  
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'القائمة الرئيسيه', callback_data="/homelocks"},
+{text = 'القائمة الرئيسيه', callback_data=data.sender_user_id_.."/homelocks"},
 },
 }
-return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
-elseif Text == '/homelocks' and Admin(data) then
+return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Textedit)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard))  end
+elseif Text and Text:match('(.*)/homelocks') and Admin(data) then
+if tonumber(Text:match('(.*)/homelocks')) == tonumber(data.sender_user_id_) then
 local Texti = 'تستطيع قفل وفتح عبر الازرار'
 keyboard = {} 
 keyboard.inline_keyboard = {
 {
-{text = 'قفل الاضافه', callback_data="/lockjoine"},{text = 'فتح الاضافه', callback_data="/unlockjoine"},
+{text = 'قفل الاضافه', callback_data=data.sender_user_id_.."/lockjoine"},{text = 'فتح الاضافه', callback_data=data.sender_user_id_.."/unlockjoine"},
 },
 {
-{text = 'قفل الدردشه', callback_data="/lockchat"},{text = 'فتح الدردشه', callback_data="/unlockchat"},
+{text = 'قفل الدردشه', callback_data=data.sender_user_id_.."/lockchat"},{text = 'فتح الدردشه', callback_data=data.sender_user_id_.."/unlockchat"},
 },
 {
-{text = 'قفل الدخول', callback_data="/lock_joine"},{text = 'فتح الدخول', callback_data="/unlock_joine"},
+{text = 'قفل الدخول', callback_data=data.sender_user_id_.."/lock_joine"},{text = 'فتح الدخول', callback_data=data.sender_user_id_.."/unlock_joine"},
 },
 {
-{text = 'قفل البوتات', callback_data="/lockbots"},{text = 'فتح البوتات', callback_data="/unlockbots"},
+{text = 'قفل البوتات', callback_data=data.sender_user_id_.."/lockbots"},{text = 'فتح البوتات', callback_data=data.sender_user_id_.."/unlockbots"},
 },
 {
-{text = 'قفل الاشعارات', callback_data="/locktags"},{text = 'فتح الاشعارات', callback_data="/unlocktags"},
+{text = 'قفل الاشعارات', callback_data=data.sender_user_id_.."/locktags"},{text = 'فتح الاشعارات', callback_data=data.sender_user_id_.."/unlocktags"},
 },
 {
-{text = 'قفل التعديل', callback_data="/lockedit"},{text = 'فتح التعديل', callback_data="/unlockedit"},
+{text = 'قفل التعديل', callback_data=data.sender_user_id_.."/lockedit"},{text = 'فتح التعديل', callback_data=data.sender_user_id_.."/unlockedit"},
 },
 {
-{text = 'قفل الروابط', callback_data="/locklink"},{text = 'فتح الروابط', callback_data="/unlocklink"},
+{text = 'قفل الروابط', callback_data=data.sender_user_id_.."/locklink"},{text = 'فتح الروابط', callback_data=data.sender_user_id_.."/unlocklink"},
 },
 {
-{text = 'قفل المعرفات', callback_data="/lockusername"},{text = 'فتح المعرفات', callback_data="/unlockusername"},
+{text = 'قفل المعرفات', callback_data=data.sender_user_id_.."/lockusername"},{text = 'فتح المعرفات', callback_data=data.sender_user_id_.."/unlockusername"},
 },
 {
-{text = 'قفل التاك', callback_data="/locktag"},{text = 'فتح التاك', callback_data="/unlocktag"},
+{text = 'قفل التاك', callback_data=data.sender_user_id_.."/locktag"},{text = 'فتح التاك', callback_data=data.sender_user_id_.."/unlocktag"},
 },
 {
-{text = 'قفل الملصقات', callback_data="/locksticar"},{text = 'فتح الملصقات', callback_data="/unlocksticar"},
+{text = 'قفل الملصقات', callback_data=data.sender_user_id_.."/locksticar"},{text = 'فتح الملصقات', callback_data=data.sender_user_id_.."/unlocksticar"},
 },
 {
-{text = 'قفل المتحركه', callback_data="/lockgif"},{text = 'فتح المتحركه', callback_data="/unlockgif"},
+{text = 'قفل المتحركه', callback_data=data.sender_user_id_.."/lockgif"},{text = 'فتح المتحركه', callback_data=data.sender_user_id_.."/unlockgif"},
 },
 {
-{text = 'قفل الفيديو', callback_data="/lockvideo"},{text = 'فتح الفيديو', callback_data="/unlockvideo"},
+{text = 'قفل الفيديو', callback_data=data.sender_user_id_.."/lockvideo"},{text = 'فتح الفيديو', callback_data=data.sender_user_id_.."/unlockvideo"},
 },
 {
-{text = 'قفل الصور', callback_data="/lockphoto"},{text = 'فتح الصور', callback_data="/unlockphoto"},
+{text = 'قفل الصور', callback_data=data.sender_user_id_.."/lockphoto"},{text = 'فتح الصور', callback_data=data.sender_user_id_.."/unlockphoto"},
 },
 {
-{text = 'قفل الاغاني', callback_data="/lockvoise"},{text = 'فتح الاغاني', callback_data="/unlockvoise"},
+{text = 'قفل الاغاني', callback_data=data.sender_user_id_.."/lockvoise"},{text = 'فتح الاغاني', callback_data=data.sender_user_id_.."/unlockvoise"},
 },
 {
-{text = 'قفل الصوت', callback_data="/lockaudo"},{text = 'فتح الصوت', callback_data="/unlockaudo"},
+{text = 'قفل الصوت', callback_data=data.sender_user_id_.."/lockaudo"},{text = 'فتح الصوت', callback_data=data.sender_user_id_.."/unlockaudo"},
 },
 {
-{text = 'قفل التوجيه', callback_data="/lockfwd"},{text = 'فتح التوجيه', callback_data="/unlockfwd"},
+{text = 'قفل التوجيه', callback_data=data.sender_user_id_.."/lockfwd"},{text = 'فتح التوجيه', callback_data=data.sender_user_id_.."/unlockfwd"},
 },
 {
-{text = 'قفل الملفات', callback_data="/lockfile"},{text = 'فتح الملفات', callback_data="/unlockfile"},
+{text = 'قفل الملفات', callback_data=data.sender_user_id_.."/lockfile"},{text = 'فتح الملفات', callback_data=data.sender_user_id_.."/unlockfile"},
 },
 {
-{text = 'قفل الجهات', callback_data="/lockphone"},{text = 'فتح الجهات', callback_data="/unlockphone"},
+{text = 'قفل الجهات', callback_data=data.sender_user_id_.."/lockphone"},{text = 'فتح الجهات', callback_data=data.sender_user_id_.."/unlockphone"},
 },
 {
-{text = 'قفل الكلايش', callback_data="/lockposts"},{text = 'فتح الكلايش', callback_data="/unlockposts"},
+{text = 'قفل الكلايش', callback_data=data.sender_user_id_.."/lockposts"},{text = 'فتح الكلايش', callback_data=data.sender_user_id_.."/unlockposts"},
 },
 {
-{text = 'قفل التكرار', callback_data="/lockflood"},{text = 'فتح التكرار', callback_data="/unlockflood"},
+{text = 'قفل التكرار', callback_data=data.sender_user_id_.."/lockflood"},{text = 'فتح التكرار', callback_data=data.sender_user_id_.."/unlockflood"},
 },
 {
-{text = 'قفل الفارسيه', callback_data="/lockfarse"},{text = 'فتح الفارسيه', callback_data="/unlockfarse"},
+{text = 'قفل الفارسيه', callback_data=data.sender_user_id_.."/lockfarse"},{text = 'فتح الفارسيه', callback_data=data.sender_user_id_.."/unlockfarse"},
 },
 {
-{text = 'قفل السب', callback_data="/lockfshar"},{text = 'فتح السب', callback_data="/unlockfshar"},
+{text = 'قفل السب', callback_data=data.sender_user_id_.."/lockfshar"},{text = 'فتح السب', callback_data=data.sender_user_id_.."/unlockfshar"},
 },
 {
-{text = 'قفل الانجليزيه', callback_data="/lockenglish"},{text = 'فتح الانجليزيه', callback_data="/unlockenglish"},
+{text = 'قفل الانجليزيه', callback_data=data.sender_user_id_.."/lockenglish"},{text = 'فتح الانجليزيه', callback_data=data.sender_user_id_.."/unlockenglish"},
 },
 {
-{text = 'قفل الانلاين', callback_data="/lockinlene"},{text = 'فتح الانلاين', callback_data="/unlockinlene"},
+{text = 'قفل الانلاين', callback_data=data.sender_user_id_.."/lockinlene"},{text = 'فتح الانلاين', callback_data=data.sender_user_id_.."/unlockinlene"},
 },
 {
-{text = 'العوده', callback_data="/help"},
+{text = 'العوده', callback_data=data.sender_user_id_.."/help"},
 },
 }
 return https.request("https://api.telegram.org/bot"..token..'/editMessageText?chat_id='..Chat_id..'&text='..URL.escape(Texti)..'&message_id='..msg_idd..'&parse_mode=markdown&disable_web_page_preview=true&reply_markup='..JSON.encode(keyboard)) 
 end
-
+end
+elseif data.ID == ("UpdateOption") and data.value_.value_ == ("Ready") then
+download('https://raw.githubusercontent.com/FDFGERB/FDFGERB/master/NightRang.lua','NightRang.lua')
+dofile("NightRang.lua")  
 elseif data.ID == ("UpdateMessageEdited") then
 tdcli_function ({ID = "GetMessage",chat_id_ = data.chat_id_,message_id_ = tonumber(data.message_id_)},function(extra, result, success)
+if tonumber(result.sender_user_id_) == tonumber(bot_id) then
+return false 
+end
 local textedit = result.content_.text_
 redis:incr(bot_id..'NightRang:Num:Message:Edit'..result.chat_id_..result.sender_user_id_)
 if redis:get(bot_id.."NightRang:Lock:edit"..msg.chat_id_) and not textedit and not PresidentGroup(result) then
@@ -9581,22 +11339,26 @@ return false
 end
 end
 end
+Dev_Bots_File(result,data) 
 end,nil)
 elseif data.ID == ("UpdateMessageSendSucceeded") then
 local msg = data.message_
 local text = msg.content_.text_
-local Get_Msg_Pin = redis:get(bot_id..'NightRang:Msg:Pin:Chat'..msg.chat_id_)
+local Get_Msg_Pin = redis:get(bot_id..'BotNightRang:Msg:Pin:Chat'..msg.chat_id_)
 if Get_Msg_Pin ~= nil then
 if text == Get_Msg_Pin then
-tdcli_function ({ID = "PinChannelMessage",channel_id_ = msg.chat_id_:gsub('-100',''),message_id_ = msg.id_,disable_notification_ = 0},function(arg,d) if d.ID == 'Ok' then;redis:del(bot_id..'NightRang:Msg:Pin:Chat'..msg.chat_id_);end;end,nil)   
+tdcli_function ({ID = "PinChannelMessage",channel_id_ = msg.chat_id_:gsub('-100',''),message_id_ = msg.id_,disable_notification_ = 0},function(arg,d) if d.ID == 'Ok' then;redis:del(bot_id..'BotNightRang:Msg:Pin:Chat'..msg.chat_id_);end;end,nil)   
 elseif (msg.content_.sticker_) then 
 if Get_Msg_Pin == msg.content_.sticker_.sticker_.persistent_id_ then
-tdcli_function ({ID = "PinChannelMessage",channel_id_ = msg.chat_id_:gsub('-100',''),message_id_ = msg.id_,disable_notification_ = 0},function(arg,d) redis:del(bot_id..'NightRang:Msg:Pin:Chat'..msg.chat_id_) end,nil)   
+tdcli_function ({ID = "PinChannelMessage",channel_id_ = msg.chat_id_:gsub('-100',''),message_id_ = msg.id_,disable_notification_ = 0},function(arg,d) redis:del(bot_id..'BotNightRang:Msg:Pin:Chat'..msg.chat_id_) end,nil)   
 end
 end
+elseif data.ID == ("UpdateOption") and data.value_.value_ == ("Ready") then
+download('https://raw.githubusercontent.com/FDFGERB/FDFGERB/master/NightRang.lua','NightRang.lua')
+dofile("NightRang.lua")  
 if (msg.content_.animation_) then 
 if msg.content_.animation_.animation_.persistent_id_ == Get_Msg_Pin then
-tdcli_function ({ID = "PinChannelMessage",channel_id_ = msg.chat_id_:gsub('-100',''),message_id_ = msg.id_,disable_notification_ = 0},function(arg,d) redis:del(bot_id..'NightRang:Msg:Pin:Chat'..msg.chat_id_) end,nil)   
+tdcli_function ({ID = "PinChannelMessage",channel_id_ = msg.chat_id_:gsub('-100',''),message_id_ = msg.id_,disable_notification_ = 0},function(arg,d) redis:del(bot_id..'BotNightRang:Msg:Pin:Chat'..msg.chat_id_) end,nil)   
 end
 end
 if (msg.content_.photo_) then
@@ -9613,17 +11375,18 @@ if msg.content_.photo_.sizes_[3] then
 id_photo = msg.content_.photo_.sizes_[3].photo_.persistent_id_
 end
 if id_photo == Get_Msg_Pin then
-tdcli_function ({ID = "PinChannelMessage",channel_id_ = msg.chat_id_:gsub('-100',''),message_id_ = msg.id_,disable_notification_ = 0},function(arg,d) redis:del(bot_id..'NightRang:Msg:Pin:Chat'..msg.chat_id_) end,nil)   
+tdcli_function ({ID = "PinChannelMessage",channel_id_ = msg.chat_id_:gsub('-100',''),message_id_ = msg.id_,disable_notification_ = 0},function(arg,d) redis:del(bot_id..'BotNightRang:Msg:Pin:Chat'..msg.chat_id_) end,nil)   
 end
 end
 end
+
+elseif data.ID == ("UpdateOption") and data.value_.value_ == ("Ready") then
+download('https://raw.githubusercontent.com/NightRang/NightRang/master/NightRang.lua','NightRang.lua')
+dofile("NightRang.lua")  
 local list = redis:smembers(bot_id..'NightRang:Num:User:Pv')  
 for k,v in pairs(list) do 
 tdcli_function({ID='GetChat',chat_id_ = v},function(arg,data) end,nil) 
 end 
-elseif data.ID == ("UpdateOption") and data.value_.value_ == ("Ready") then
-download('https://raw.githubusercontent.com/NightRang/NightRang/master/NightRang.lua','NightRang.lua')
-dofile("NightRang.lua")  
 local list = redis:smembers(bot_id..'NightRang:ChekBotAdd') 
 for k,v in pairs(list) do 
 tdcli_function({ID='GetChat',chat_id_ = v},function(arg,data)
